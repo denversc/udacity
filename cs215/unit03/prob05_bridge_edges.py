@@ -156,12 +156,56 @@ def test_number_of_descendants():
 
 ###############
 
+def create_depth_map(S, root, depth=1, depths=None):
+    if depths is None:
+        depths = {}
+    depths[root] = depth
+    for adjacent_node in S[root]:
+        if adjacent_node not in depths:
+            edge_color = S[root][adjacent_node]
+            if edge_color == "green":
+                create_depth_map(S, adjacent_node, depth+1, depths)
+    return depths
+
+def lowest_post_order_recursive(S, root, po, depths, visited=None, red_edge_used=False):
+    depth = depths[root]
+    min_po = po[root]
+
+    if visited is None:
+        visited = set()
+    visited.add(root)
+
+    for adjacent_node in S[root]:
+        if adjacent_node in visited:
+            continue
+
+        edge_color = S[root][adjacent_node]
+        if edge_color == "red":
+            if red_edge_used:
+                continue
+            else:
+                cur_red_edge_used = True
+        else:
+            cur_red_edge_used = red_edge_used
+            adjacent_node_depth = depths[adjacent_node]
+            if adjacent_node_depth < depth:
+                continue
+
+        cur_min_po = lowest_post_order_recursive(S, adjacent_node, po, depths,
+            visited, cur_red_edge_used)
+        if cur_min_po < min_po:
+            min_po = cur_min_po
+
+    visited.remove(root)
+    return min_po
+
 def lowest_post_order(S, root, po):
     # return a mapping of the nodes in S
     # to the lowest post order value
     # below that node
     # (and you're allowed to follow 1 red edge)
-    pass
+    depths = create_depth_map(S, root)
+    return {x: lowest_post_order_recursive(S, x, po, depths) for x in S}
 
 def test_lowest_post_order():
     S = {'a': {'c': 'green', 'b': 'green'},
