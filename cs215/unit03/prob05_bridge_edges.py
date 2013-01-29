@@ -282,7 +282,46 @@ def bridge_edges(G, root):
     # use the four functions above
     # and then determine which edges in G are bridge edges
     # return them as a list of tuples ie: [(n1, n2), (n4, n5)]
-    pass
+    spanning_tree = create_rooted_spanning_tree(G, root)
+    postorder = post_order(spanning_tree, root)
+    num_descendents = number_of_descendants(spanning_tree, root)
+    min_postorder = lowest_post_order(spanning_tree, root, postorder)
+    max_postorder = highest_post_order(spanning_tree, root, postorder)
+
+    bridge_edges = []
+    unvisited_nodes = [root]
+    while unvisited_nodes:
+        node = unvisited_nodes[0]
+        del unvisited_nodes[0]
+
+        node_po = postorder[node]
+        node_nd = num_descendents[node]
+        node_minpo = min_postorder[node]
+        node_maxpo = max_postorder[node]
+
+        if node != root and (node_maxpo <= node_po) and (node_minpo > (node_po - node_nd)):
+            for adjacent_node in spanning_tree[node]:
+                edge_color = spanning_tree[node][adjacent_node]
+                if edge_color == "red":
+                    continue
+                adjacent_node_po = postorder[adjacent_node]
+                if adjacent_node_po > node_po:
+                    bridge_edge = (node, adjacent_node)
+                    break
+            else:
+                assert False, "unable to find green parent of node {}".format(node)
+
+            if bridge_edge not in bridge_edges:
+                inverse_bridge_edge = (bridge_edge[1], bridge_edge[0])
+                bridge_edges.append(inverse_bridge_edge)
+
+            del bridge_edge # to catch errors if they occur later on
+
+        for adjacent_node in spanning_tree[node]:
+            edge_color = spanning_tree[node][adjacent_node]
+            if edge_color == "green":
+                unvisited_nodes.append(adjacent_node)
+
 
 def test_bridge_edges():
     G = {'a': {'c': 1, 'b': 1},
