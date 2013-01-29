@@ -223,12 +223,45 @@ def test_lowest_post_order():
 
 ################
 
+def highest_post_order_recursive(S, root, po, depths, visited=None, red_edge_used=False):
+    depth = depths[root]
+    max_po = po[root]
+
+    if visited is None:
+        visited = set()
+    visited.add(root)
+
+    for adjacent_node in S[root]:
+        if adjacent_node in visited:
+            continue
+
+        edge_color = S[root][adjacent_node]
+        if edge_color == "red":
+            if red_edge_used:
+                continue
+            else:
+                cur_red_edge_used = True
+        else:
+            cur_red_edge_used = red_edge_used
+            adjacent_node_depth = depths[adjacent_node]
+            if adjacent_node_depth < depth:
+                continue
+
+        cur_max_po = highest_post_order_recursive(S, adjacent_node, po, depths,
+            visited, cur_red_edge_used)
+        if cur_max_po > max_po:
+            max_po = cur_max_po
+
+    visited.remove(root)
+    return max_po
+
 def highest_post_order(S, root, po):
     # return a mapping of the nodes in S
     # to the highest post order value
     # below that node
     # (and you're allowed to follow 1 red edge)
-    pass
+    depths = create_depth_map(S, root)
+    return {x: highest_post_order_recursive(S, x, po, depths) for x in S}
 
 def test_highest_post_order():
     S = {'a': {'c': 'green', 'b': 'green'},
