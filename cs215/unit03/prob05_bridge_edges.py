@@ -127,10 +127,20 @@ def test_post_order():
 
 ##############
 
-def number_of_descendants(S, root):
+def number_of_descendants(S, root, counts=None):
     # return mapping between nodes of S and the number of descendants
     # of that node
-    pass
+    if counts is None:
+        counts = {}
+    count = 1 # 1 to count ourself
+    counts[root] = None # placeholder to avoid re-traversing this node
+    for adjacent_node in sorted(S[root]):
+        if S[root][adjacent_node] == "green" and adjacent_node not in counts:
+            number_of_descendants(S, adjacent_node, counts)
+            sub_count = counts[adjacent_node]
+            count += sub_count
+    counts[root] = count
+    return counts
 
 def test_number_of_descendants():
     S =  {'a': {'c': 'green', 'b': 'green'},
