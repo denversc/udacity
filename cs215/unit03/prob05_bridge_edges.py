@@ -95,10 +95,17 @@ def test_create_rooted_spanning_tree():
                  }
 ###########
 
-def post_order(S, root):
+def post_order(S, root, result=None):
     # return mapping between nodes of S and the post-order value
     # of that node
-    pass
+    if result is None:
+        result = {}
+    result[root] = -1
+    for adjacent_node in sorted(S[root]):
+        if adjacent_node not in result and S[root][adjacent_node] == "green":
+            post_order(S, adjacent_node, result)
+    result[root] = 1 + len([x for x in result if result[x] >= 0])
+    return result
 
 # This is just one possible solution
 # There are other ways to create a
