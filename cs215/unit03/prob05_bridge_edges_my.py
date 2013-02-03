@@ -290,9 +290,11 @@ def bridge_edges(G, root):
 
     bridge_edges = []
     unvisited_nodes = [root]
+    visited_nodes = set()
     while unvisited_nodes:
         node = unvisited_nodes[0]
         del unvisited_nodes[0]
+        visited_nodes.add(node)
 
         node_po = postorder[node]
         node_nd = num_descendents[node]
@@ -318,19 +320,60 @@ def bridge_edges(G, root):
             del bridge_edge # to catch errors if they occur later on
 
         for adjacent_node in spanning_tree[node]:
-            edge_color = spanning_tree[node][adjacent_node]
-            if edge_color == "green":
-                unvisited_nodes.append(adjacent_node)
+            if adjacent_node not in visited_nodes:
+                edge_color = spanning_tree[node][adjacent_node]
+                if edge_color == "green":
+                    unvisited_nodes.append(adjacent_node)
 
+    return bridge_edges
 
-def test_bridge_edges():
-    G = {'a': {'c': 1, 'b': 1},
-         'b': {'a': 1, 'd': 1},
-         'c': {'a': 1, 'd': 1},
-         'd': {'c': 1, 'b': 1, 'e': 1},
-         'e': {'d': 1, 'g': 1, 'f': 1},
-         'f': {'e': 1, 'g': 1},
-         'g': {'e': 1, 'f': 1}
-         }
-    bridges = bridge_edges(G, 'a')
-    assert bridges == [('d', 'e')]
+import unittest
+
+class InstructorProvidedTests(unittest.TestCase):
+
+    def test_bridge_edges(self):
+        G = {'a': {'c': 1, 'b': 1},
+             'b': {'a': 1, 'd': 1},
+             'c': {'a': 1, 'd': 1},
+             'd': {'c': 1, 'b': 1, 'e': 1},
+             'e': {'d': 1, 'g': 1, 'f': 1},
+             'f': {'e': 1, 'g': 1},
+             'g': {'e': 1, 'f': 1}
+             }
+        bridges = bridge_edges(G, 'a')
+        self.assertListEqual(bridges, [('d', 'e')])
+
+class DenversTests(unittest.TestCase):
+
+    def test_1_node_0_edges(self):
+        G = {'a': {}}
+        bridges = bridge_edges(G, 'a')
+        self.assertListEqual(bridges, [])
+
+    def test_2_nodes_1_edge(self):
+        G = {
+            'a': {'b': 1},
+            'b': {'a': 1},
+        }
+        bridges = bridge_edges(G, 'a')
+        self.assertListEqual(bridges, [('a', 'b')])
+
+    def test_3_nodes_in_a_chain(self):
+        G = {
+            'a': {'b': 1},
+            'b': {'a': 1, 'c': 1},
+            'c': {'b': 1},
+        }
+        bridges = bridge_edges(G, 'a')
+        self.assertListEqual(bridges, [('a', 'b'), ('b', 'c')])
+
+    def test_5_nodes_5_edges(self):
+        G = {
+            'a': {'b': 1, 'c': 1, 'd': 1},
+            'b': {'a': 1, 'c': 1},
+            'c': {'a': 1, 'b': 1, 'e': 1},
+            'd': {'a': 1},
+            'e': {'c': 1},
+        }
+        bridges = bridge_edges(G, 'a')
+        self.assertListEqual(bridges, [('a', 'd'), ('c', 'e')])
