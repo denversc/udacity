@@ -14,15 +14,20 @@ def main():
     centralities = calculate_centralities(graph)
     centralities.sort(key=lambda x:x[1])
     for (index, (node, centrality)) in enumerate(centralities[:20], 1):
-        print("{}: {} ({})".format(index, node, centrality))
+        msg = u"{}: {} ({})".format(index, node, centrality)
+        print(msg.encode("us-ascii", errors="replace"))
 
 def calculate_centralities(graph):
     print("calculate_centralities()")
     centralities = []
-    for (index, node) in enumerate(graph.itervalues(), 1):
-        cur_centrality = centrality(graph, node)
-        centralities.append((node.name, cur_centrality))
-        print("{}/{} {} ({})".format(index, len(graph), node.name, cur_centrality))
+    try:
+        for (index, node) in enumerate(graph.itervalues(), 1):
+            cur_centrality = centrality(graph, node)
+            centralities.append((node.name, cur_centrality))
+            if index % 20 == 0:
+                print("{}/{}".format(index, len(graph)))
+    except KeyboardInterrupt:
+        pass
     return centralities
 
 def centrality(graph, root):
@@ -31,23 +36,25 @@ def centrality(graph, root):
         node.path_length = None
 
     path_lengths_sum = 0
-    unvisited_nodes = [root]
+    unvisited_nodes = [None] * len(graph)
+    unvisited_nodes[0] = root
     unvisited_nodes_index = 0
+    unvisited_nodes_len = 1
     root.visited = True
     root.path_length = 0
 
-    while unvisited_nodes_index < len(unvisited_nodes):
+    while unvisited_nodes_index < unvisited_nodes_len:
         node = unvisited_nodes[unvisited_nodes_index]
         unvisited_nodes_index += 1
         path_lengths_sum += node.path_length
-
         for adjacent_node in node.adjacent_nodes:
             if not adjacent_node.visited:
                 adjacent_node.visited = True
                 adjacent_node.path_length = node.path_length + 1
-                unvisited_nodes.append(adjacent_node)
+                unvisited_nodes[unvisited_nodes_len] = adjacent_node
+                unvisited_nodes_len += 1
 
-    centrality = float(path_lengths_sum) / float(len(graph))
+    centrality = float(path_lengths_sum) / float(unvisited_nodes_len)
     return centrality
 
 def actor_graph_from_movies(movies):
