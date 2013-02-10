@@ -11,27 +11,28 @@ import os
 def main():
     movies = load_movies()
     graph = actor_graph_from_movies(movies)
-    centralities = calculate_centralities(graph)
+    centralities = calculate_actor_centralities(graph)
     centralities.sort(key=lambda x:x[1])
     for (index, (node, centrality)) in enumerate(centralities[:20], 1):
         msg = u"{}: {} ({})".format(index, node, centrality)
         print(msg.encode("us-ascii", errors="replace"))
 
-def calculate_centralities(graph):
+def calculate_actor_centralities(graph):
     print("calculate_centralities()")
     centralities = []
     try:
-        for (index, node) in enumerate(graph.itervalues(), 1):
-            cur_centrality = centrality(graph, node)
-            centralities.append((node.name, cur_centrality))
-            if index % 20 == 0:
+        for (index, node) in enumerate(graph, 1):
+            if node.node_type == "actor":
+                centrality = actor_centrality(graph, node)
+                centralities.append((node.name, centrality))
+            if index % 50 == 0:
                 print("{}/{}".format(index, len(graph)))
     except KeyboardInterrupt:
         pass
     return centralities
 
-def centrality(graph, root):
-    for node in graph.itervalues():
+def actor_centrality(graph, root):
+    for node in graph:
         node.visited = False
         node.path_length = None
 
@@ -55,42 +56,48 @@ def centrality(graph, root):
 
 def actor_graph_from_movies(movies):
     print("actor_graph_from_movies()")
-    nodes = {}
-    for actors in movies.itervalues():
-        for actor1 in actors:
-            if actor1 in nodes:
-                node1 = nodes[actor1]
+    movie_nodes = {}
+    actor_nodes = {}
+
+    for (movie, actors) in movies.iteritems():
+        for actor in actors:
+            if actor in actor_nodes:
+                actor_node = actor_nodes[actor]
             else:
-                node1 = Node(actor1)
-                nodes[actor1] = node1
+                actor_node = Node(actor, "actor")
+                actor_nodes[actor] = actor_node
 
-            for actor2 in actors:
-                if actor1 != actor2:
-                    if actor2 in nodes:
-                        node2 = nodes[actor2]
-                    else:
-                        node2 = Node(actor2)
-                        nodes[actor2] = node2
+            if movie in movie_nodes:
+                movie_node = movie_nodes[movie]
+            else:
+                movie_node = Node(movie, "movie")
+                movie_nodes[movie] = movie_node
 
-                    node1.adjacent_nodes.add(node2)
+            actor_node.adjacent_nodes.add(movie_node)
+            movie_node.adjacent_nodes.add(actor_node)
+
+    nodes = []
+    nodes.extend(actor_nodes.values())
+    nodes.extend(movie_nodes.values())
     return nodes
 
 class Node(object):
-    def __init__(self, name):
+    def __init__(self, name, node_type):
         self.name = name
+        self.node_type = node_type
         self.adjacent_nodes = set()
         self.visited = False
         self.path_length = 0
     def __eq__(self, other):
-        return self.name == other.name
+        return (self.name == other.name) and (self.node_type == other.node_type)
     def __ne__(self, other):
-        return self.name != other.name
+        return (self.name != other.name) and (self.node_type != other.node_type)
     def __hash__(self):
         return hash(self.name)
     def __str__(self):
-        return self.name
+        return "{} ({})".format(self.name, self.node_type)
     def __repr__(self):
-        return "Node({!r})".format(self.name)
+        return "Node({!r}, {!r})".format(self.name, self.node_type)
 
 def load_movies():
     print("load_movies()")
