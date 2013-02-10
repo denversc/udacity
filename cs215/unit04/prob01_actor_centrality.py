@@ -4,9 +4,9 @@ using the average centrality measurement given in unit 3.
 The top central actor is Tatasciore, Ford.  Who is the 20th?
 """
 
+import collections
 import io
 import os
-import pprint
 
 def main():
     movies = load_movies()
@@ -36,25 +36,21 @@ def centrality(graph, root):
         node.path_length = None
 
     path_lengths_sum = 0
-    unvisited_nodes = [None] * len(graph)
-    unvisited_nodes[0] = root
-    unvisited_nodes_index = 0
-    unvisited_nodes_len = 1
+    unvisited_nodes = collections.deque()
+    unvisited_nodes.append(root)
     root.visited = True
     root.path_length = 0
 
-    while unvisited_nodes_index < unvisited_nodes_len:
-        node = unvisited_nodes[unvisited_nodes_index]
-        unvisited_nodes_index += 1
-        path_lengths_sum += node.path_length
+    while unvisited_nodes:
+        node = unvisited_nodes.popleft()
         for adjacent_node in node.adjacent_nodes:
             if not adjacent_node.visited:
                 adjacent_node.visited = True
                 adjacent_node.path_length = node.path_length + 1
-                unvisited_nodes[unvisited_nodes_len] = adjacent_node
-                unvisited_nodes_len += 1
+                unvisited_nodes.append(adjacent_node)
+                path_lengths_sum += adjacent_node.path_length
 
-    centrality = float(path_lengths_sum) / float(unvisited_nodes_len)
+    centrality = float(path_lengths_sum) / float(len(graph) - 1)
     return centrality
 
 def actor_graph_from_movies(movies):
