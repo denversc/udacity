@@ -1,12 +1,11 @@
 # Created on Feb 12, 2013
 #
-# Write a program to read the Marvel graph and put a strength valu eon each link.
+# Write a program to read the Marvel graph and put a strength value on each link.
 # The "strength" is the number of books in which the characters co-appear.
 # Which link has the highest strength value?
 
 import collections
 import csv
-import pprint
 
 def make_link(G, node1, node2):
     if node1 not in G:
@@ -55,11 +54,3 @@ if __name__ == "__main__":
     weights = get_weights(graph)
     max_weight = get_max_weight(weights)
     print("max_weight: {}".format(max_weight))
-
-
-
-
-
-
-
-
