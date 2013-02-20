@@ -201,9 +201,9 @@ if __name__ == "__main__":
         expected = test[actors]
         actor1_name, actor2_name = actors
         actor1, actor2 = Actor(actor1_name), Actor(actor2_name)
-        print("Testing {} -> {}".format(actor1, actor2))
+        print(u"Testing {} -> {}".format(actor1, actor2))
         actual = calculate_least_obscure_path_weight(graph, actor1, actor2)
         if actual == expected:
-            print("PASS")
+            print(u"PASS")
         else:
-            print("** FAIL **: actual={} expected={}".format(actual, expected))
+            print(u"** FAIL **: actual={} expected={}".format(actual, expected))
