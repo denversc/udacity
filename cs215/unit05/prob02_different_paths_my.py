@@ -93,21 +93,34 @@ def create_marvel_graph(comics):
 
 def get_shortest_hops(graph, node):
     """
-    Calculates the shortest path by number of hops in the given graph from the
+    Calculates the shortest paths by number of hops in the given graph from the
     given node to all other nodes.  Returns a dict whose keys are the nodes in
-    the given graph and whose values are list of nodes whose values represent
-    the shortest path by hops.
+    the given graph and whose values are lists of lists of nodes whose values
+    represent a shortest path by hops.
+
+    Depending on the graph, it is possible for there to be more than one
+    shortest path between two nodes.  That is why the values of the dict are
+    lists of lists (lists of shortest paths) instead of just a single list.
     """
     unvisited_nodes = [(node, [node])]
-    shortest_hops = {node: [node]}
+    shortest_hops = {node: [[node]]}
     while unvisited_nodes:
         (node, path) = unvisited_nodes[0]
         del unvisited_nodes[0]
         for adjacent_node in graph[node]:
+            shortest_path = path + [adjacent_node]
             if adjacent_node not in shortest_hops:
-                shortest_path = path + [adjacent_node]
-                shortest_hops[adjacent_node] = shortest_path
+                shortest_hops[adjacent_node] = [shortest_path]
                 unvisited_nodes.append((adjacent_node, shortest_path))
+            else:
+                shortest_paths = shortest_hops[adjacent_node]
+                cur_shortest_path_len = len(shortest_paths[0])
+                if len(shortest_path) == cur_shortest_path_len:
+                    shortest_paths.append(shortest_path)
+                    unvisited_nodes.append((adjacent_node, shortest_path))
+                else:
+                    # sanity check
+                    assert len(shortest_path) > cur_shortest_path_len
     return shortest_hops
 
 
@@ -289,9 +302,9 @@ def get_num_different_paths(comics, characters):
 
         for node in shortest_hops:
             assert node in shortest_weighted_paths # sanity check
-            hops_path = shortest_hops[node]
+            shortest_hops_paths = shortest_hops[node]
             weighted_path = shortest_weighted_paths[node]
-            if hops_path != weighted_path:
+            if weighted_path not in shortest_hops_paths:
                 count += 1
 
         # just a sanity check
@@ -349,6 +362,26 @@ class DenverTests(unittest.TestCase):
         }
         actual = get_num_different_paths(comics, ["A", "B", "C"])
         self.assertEqual(actual, 2)
+
+    def test_Another1(self):
+        comics = {
+            1: ["A", "B"],
+            2: ["A", "B", "C"],
+            3: ["B", "C"],
+            4: ["D", "E", "F"],
+            5: ["D", "A", "B"],
+            6: ["E", "A", "B"],
+            7: ["F", "G"],
+            8: ["F", "E"],
+            8: ["A", "D"],
+            9: ["A", "D"],
+            10: ["A", "D"],
+            11: ["A", "D"],
+            12: ["A", "D"],
+        }
+        self.assertEqual(get_num_different_paths(comics, ["A"]), 1)
+        self.assertEqual(get_num_different_paths(comics, ["B"]), 3)
+        self.assertEqual(get_num_different_paths(comics, ["C"]), 4)
 
 CHARACTERS_OF_INTEREST = [
     'SPIDER-MAN/PETER PAR',
