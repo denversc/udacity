@@ -22,17 +22,15 @@
 # Hint: A variation of Dijkstra can be used to solve this problem.
 #
 
+import collections
 import io
 
 class Movie(object):
-    __slots__ = ("name", "year", "obscurity_score", "actors")
-    def __init__(self, name, year, obscurity_score):
+    __slots__ = ("name", "year", "__hash__")
+    def __init__(self, name, year):
         self.name = name
         self.year = year
-        self.obscurity_score = obscurity_score
-        self.actors = []
-    def __hash__(self):
-        return hash(self.name)
+        self.__hash__ = name.__hash__
     def __eq__(self, other):
         if isinstance(other, Movie):
             return self.name == other.name and self.year == other.year
@@ -45,13 +43,10 @@ class Movie(object):
 
 
 class Actor(object):
-    __slots__ = ("name", "__hash__", "index", "movies", "connections")
+    __slots__ = ("name", "__hash__")
     def __init__(self, name):
         self.name = name
         self.__hash__ = name.__hash__
-        self.index = None
-        self.movies = []
-        self.connections = {}
     def __eq__(self, other):
         return self.name == other.name
     def __str__(self):
@@ -69,88 +64,89 @@ def load_graph():
     smallest obscurity score of all movies in which the two actors co-appeared.
     """
     print("Loading imdb-weights.tsv")
-    movies = {}
+    obscurity_scores = {}
     with io.open("imdb-weights.tsv", "rt", encoding="UTF-8") as f:
         for line in f:
             (name, year, revenue_str) = line.rstrip().split(u"\t")
             revenue = float(revenue_str)
             obscurity_score = 1.0 / revenue
             key = (name, year)
-            assert key not in movies
-            movies[key] = Movie(name, year, obscurity_score)
+            assert key not in obscurity_scores
+            obscurity_scores[key] = obscurity_score
 
     print("Loading imdb-1.tsv")
     actors = {}
+    movies = {}
+    graph = collections.defaultdict(lambda: collections.defaultdict(lambda:{}))
     with io.open("imdb-1.tsv", "rt", encoding="UTF-8") as f:
         for line in f:
             (actor_name, movie_name, movie_year) = line.rstrip().split(u"\t")
+
+            actors_key = actor_name
             try:
-                actor = actors[actor_name]
+                actor = actors[actors_key]
             except KeyError:
                 actor = Actor(actor_name)
-                actors[actor_name] = actor
+                actors[actors_key] = actor
 
-            movie = movies[(movie_name, movie_year)]
-            actor.movies.append(movie)
-            movie.actors.append(actor)
+            movies_key = (movie_name, movie_year)
+            try:
+                movie = movies[movies_key]
+            except KeyError:
+                movie = Movie(movie_name, movie_year)
 
-    print("Building connections between actors")
-    for actor1 in actors.itervalues():
-        for movie in actor1.movies:
-            for actor2 in movie.actors:
-                if actor1 != actor2:
-                    try:
-                        cur_min_obscurity_score = actor1.connections[actor2]
-                    except KeyError:
-                        actor1.connections[actor2] = movie.obscurity_score
-                    else:
-                        if movie.obscurity_score < cur_min_obscurity_score:
-                            actor1.connections[actor2] = movie.obscurity_score
+            obscurity_score = obscurity_scores[movies_key]
+            graph[actor][movie] = obscurity_score
+            graph[movie][actor] = obscurity_score
 
-    print("Cleaning up actors")
-    actors = [x for x in actors.itervalues()]
-    for actor in actors:
-        actor.movies = None
-    return tuple(actors)
+    return graph
 
-def calculate_least_obscure_path(actors, actor1, actor2):
+
+def calculate_least_obscure_path_weight(graph, actor1, actor2):
     """
-    Calculates the obscurity score of the least obscure path between all pairs
-    of actors in the given graph.
-    *actors* must be the object returned from load_graph().
+    Finds the path in the given graph between the two given actors with the
+    smallest weight, where the weight of the path is the maximum obscurity score
+    encountered along that path.  Returns a float whose value is the obscurity
+    score of the path that was found.
+    *graph* must be the object returned from load_graph().
     *actor1* and *actor2* must be the two Actor objects from actors whose
     least obscure path score to calculate.
     """
-    finished = {}
+    finished = set()
     unfinished = {actor1: 0.0}
 
-    while unfinished:
-        # pick shortest path from unfinished
-        actor = None
-        path_length = None
-        for cur_actor in unfinished:
-            cur_path_length = unfinished[cur_actor]
-            if actor is None or cur_path_length < path_length:
-                actor = cur_actor
-                path_length = cur_path_length
-        del cur_actor
-        del cur_path_length
-
-        finished[actor] = path_length
-        del unfinished[actor]
-
-        for adjacent_actor in actor.connections:
-            if adjacent_actor not in finished:
-                adjacent_path_length = actor.connections[adjacent_actor]
-                path_length_to_adjacent = max(adjacent_path_length, path_length)
-                if adjacent_actor not in unfinished:
-                    unfinished[adjacent_actor] = path_length_to_adjacent
+    while True:
+        (node, node_weight) = find_smallest_value(unfinished)
+        adjacent_nodes = graph[node]
+        for adjacent_node in adjacent_nodes:
+            if adjacent_node not in finished:
+                adjacent_node_weight = adjacent_nodes[adjacent_node]
+                adjacent_node_weight_final = max(adjacent_node_weight, node_weight)
+                if adjacent_node not in unfinished:
+                    unfinished[adjacent_node] = adjacent_node_weight_final
                 else:
-                    cur_path_length_to_adjacent = unfinished[adjacent_actor]
-                    if cur_path_length_to_adjacent < path_length_to_adjacent:
-                        unfinished[adjacent_actor] = path_length_to_adjacent
+                    cur_adjacent_node_min_weight = unfinished[adjacent_node]
+                    if adjacent_node_weight_final < cur_adjacent_node_min_weight:
+                        unfinished[adjacent_node] = adjacent_node_weight_final
 
-    return finished[actor2]
+        if node == actor2:
+            result = unfinished[node]
+            return result
+        del unfinished[node]
+        finished.add(node)
+
+    raise Exception("unable to find path between the given nodes in the given graph")
+
+def find_smallest_value(d):
+    smallest_key = None
+    smallest_value = None
+    for key in d:
+        value = d[key]
+        if smallest_value is None or value < smallest_value:
+            smallest_key = key
+            smallest_value = value
+    assert smallest_key is not None
+    return (smallest_key, smallest_value)
 
 
 # Change the `None` values in this dictionary to be the obscurity score
@@ -205,21 +201,9 @@ if __name__ == "__main__":
     for actors in test:
         expected = test[actors]
         actor1_name, actor2_name = actors
-
-        for actor1 in graph:
-            if actor1.name == actor1_name:
-                break
-        else:
-            raise Exception("actor not found: {}".format(actor1_name))
-
-        for actor2 in graph:
-            if actor2.name == actor2_name:
-                break
-        else:
-            raise Exception("actor not found: {}".format(actor2_name))
-
+        actor1, actor2 = Actor(actor1_name), Actor(actor2_name)
         print("Testing {} -> {}".format(actor1, actor2))
-        actual = calculate_least_obscure_path(graph, actor1, actor2)
+        actual = calculate_least_obscure_path_weight(graph, actor1, actor2)
         if actual == expected:
             print("PASS")
         else:
