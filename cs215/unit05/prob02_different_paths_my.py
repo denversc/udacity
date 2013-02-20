@@ -330,24 +330,24 @@ class DenverTests(unittest.TestCase):
         actual = get_num_different_paths(comics, ["A", "B", "C", "D"])
         self.assertEqual(actual, 0)
 
-    def test_4NodesChainWithRepeats(self):
+    def test_4NodesWithRepeats(self):
         comics = {
             "book1": ["A", "B"],
             "book2": ["B", "C"],
-            "book3": ["A", "D"],
-            "book4": ["A", "D"],
-            "book5": ["A", "D"],
-            "book6": ["A", "D"],
-            "book7": ["E", "D"],
-            "book8": ["E", "D"],
-            "book9": ["E", "D"],
-            "booka": ["E", "D"],
-            "bookb": ["E", "C"],
-            "bookc": ["E", "C"],
-            "bookd": ["E", "C"],
-            "booke": ["E", "C"],
+            "book3": ["A", "D"], "book4": ["A", "D"], "book5": ["A", "D"], "book6": ["A", "D"],
+            "book7": ["E", "D"], "book8": ["E", "D"], "book9": ["E", "D"], "booka": ["E", "D"],
+            "bookb": ["E", "C"], "bookc": ["E", "C"], "bookd": ["E", "C"], "booke": ["E", "C"],
         }
         actual = get_num_different_paths(comics, ["A", "B", "C", "D", "E"])
+        self.assertEqual(actual, 2)
+
+    def test_3NodesConnected(self):
+        comics = {
+            "book1": ["A", "B"],
+            "book2": ["A", "C"], "book3": ["A", "C"], "book4": ["A", "C"], "book5": ["A", "C"],
+            "book5": ["C", "B"], "book6": ["C", "B"], "book7": ["C", "B"], "book8": ["C", "B"],
+        }
+        actual = get_num_different_paths(comics, ["A", "B", "C"])
         self.assertEqual(actual, 2)
 
 CHARACTERS_OF_INTEREST = [
