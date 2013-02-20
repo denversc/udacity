@@ -67,9 +67,8 @@ def load_graph():
     obscurity_scores = {}
     with io.open("imdb-weights.tsv", "rt", encoding="UTF-8") as f:
         for line in f:
-            (name, year, revenue_str) = line.rstrip().split(u"\t")
-            revenue = float(revenue_str)
-            obscurity_score = 1.0 / revenue
+            (name, year, obscurity_score_str) = line.rstrip().split(u"\t")
+            obscurity_score = float(obscurity_score_str)
             key = (name, year)
             assert key not in obscurity_scores
             obscurity_scores[key] = obscurity_score
