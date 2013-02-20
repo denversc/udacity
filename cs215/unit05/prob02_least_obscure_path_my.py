@@ -23,7 +23,6 @@
 #
 
 import io
-import threading
 
 class Movie(object):
     __slots__ = ("name", "year", "obscurity_score", "actors")
@@ -105,7 +104,7 @@ def load_graph():
                     except KeyError:
                         actor1.connections[actor2] = movie.obscurity_score
                     else:
-                        if cur_min_obscurity_score > movie.obscurity_score:
+                        if movie.obscurity_score < cur_min_obscurity_score:
                             actor1.connections[actor2] = movie.obscurity_score
 
     print("Cleaning up actors")
@@ -148,7 +147,7 @@ def calculate_least_obscure_path(actors, actor1, actor2):
                     unfinished[adjacent_actor] = path_length_to_adjacent
                 else:
                     cur_path_length_to_adjacent = unfinished[adjacent_actor]
-                    if cur_path_length_to_adjacent > path_length_to_adjacent:
+                    if cur_path_length_to_adjacent < path_length_to_adjacent:
                         unfinished[adjacent_actor] = path_length_to_adjacent
 
     return finished[actor2]
