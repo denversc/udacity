@@ -24,6 +24,7 @@
 
 import collections
 import io
+import pprint
 
 class Movie(object):
     __slots__ = ("name", "year", "__hash__")
@@ -195,8 +196,7 @@ test = {(u'Ali, Tony', u'Allen, Woody'): 0.5657,
         (u'Thompson, Sophie (I)', u'Foley, Dave (I)'): 0.1095,
         (u'Tzur, Mira', u'Heston, Charlton'): 0.3642}
 
-if __name__ == "__main__":
-    graph = load_graph()
+def run_test(graph):
     for actors in test:
         expected = test[actors]
         actor1_name, actor2_name = actors
@@ -207,3 +207,17 @@ if __name__ == "__main__":
             print(u"PASS")
         else:
             print(u"** FAIL **: actual={} expected={}".format(actual, expected))
+
+def print_answer(graph):
+    results = {}
+    for actors in answer:
+        actor1_name, actor2_name = actors
+        actor1, actor2 = Actor(actor1_name), Actor(actor2_name)
+        print(u"Calculating {} -> {}".format(actor1, actor2))
+        actual = calculate_least_obscure_path_weight(graph, actor1, actor2)
+        results[actors] = actual
+    pprint.pprint(results)
+
+if __name__ == "__main__":
+    graph = load_graph()
+    print_answer(graph)
