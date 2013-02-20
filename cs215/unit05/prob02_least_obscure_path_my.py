@@ -114,73 +114,44 @@ def load_graph():
         actor.movies = None
     return tuple(actors)
 
-def calculate_least_obscure_paths_between_actors(actors):
+def calculate_least_obscure_path(actors, actor1, actor2):
     """
     Calculates the obscurity score of the least obscure path between all pairs
     of actors in the given graph.
     *actors* must be the object returned from load_graph().
-    Returns a dict whose keys are Actor objects and whose values are dicts.
-    The value dicts also have Actor objects as their keys and their values
-    are floats whose values are the maximum obscurity score of the most obscure
-    movie on the shortest path between the two actors.
+    *actor1* and *actor2* must be the two Actor objects from actors whose
+    least obscure path score to calculate.
     """
-    # for Floyd-Warshall, we need to assign a numeric value to each actor node
-    actors_len = len(actors)
-    print("Initializing Actor Indices ({})".format(actors_len))
-    actor_indices = tuple(x for x in xrange(actors_len))
-    for (index, actor) in enumerate(actors):
-        actor.index = index
-    del index
-    del actor
+    finished = {}
+    unfinished = {actor1: 0.0}
 
-    # fill in the initial matrix with direct links in the graph
-    print("Creating initial matrix")
-    matrix = [[None] * (actors_len - i) for i in reversed(actor_indices)]
-    for i in actor_indices:
-        actor1 = actors[i]
-        matrix[i][i] = 0.0 # a node links to itself with no cost
-        for (actor2, obscurity_score) in actor1.connections.iteritems():
-            assert actor1.index != actor2.index, "{}=={} ({!r}, {!r})".format(actor1.index, actor2.index, actor1, actor2)
-            if actor2.index < actor1.index:
-                matrix[actor1.index][actor2.index] = obscurity_score
-    del i
-    del actor1
-    del actor2
+    while unfinished:
+        # pick shortest path from unfinished
+        actor = None
+        path_length = None
+        for cur_actor in unfinished:
+            cur_path_length = unfinished[cur_actor]
+            if actor is None or cur_path_length < path_length:
+                actor = cur_actor
+                path_length = cur_path_length
+        del cur_actor
+        del cur_path_length
 
-    floyd_warshall(matrix, actors, actor_indices)
+        finished[actor] = path_length
+        del unfinished[actor]
 
-    return matrix
-
-def floyd_warshall(matrix, actors, actor_indices):
-    for k in actor_indices:
-        print("k={}".format(k))
-        actork = actors[k]
-        for row in actor_indices:
-            for col in actor_indices:
-                # since the edges are two-way, the matix is symmetric and we
-                # can ignore the bottom half
-                if col > row:
-                    continue
-
-                actor1 = actors[row]
-                if actork not in actor1.connections:
-                    continue
-                actor1_k_obscurity = actor1.connections[actork]
-
-                actor2 = actors[col]
-                if actork not in actor2.connections:
-                    continue
-                actor2_k_obscurity = actor2.connections[actork]
-
-                if actor1_k_obscurity >= actor2_k_obscurity:
-                    min_obscurity_2 = actor1_k_obscurity
+        for adjacent_actor in actor.connections:
+            if adjacent_actor not in finished:
+                adjacent_path_length = actor.connections[adjacent_actor]
+                path_length_to_adjacent = max(adjacent_path_length, path_length)
+                if adjacent_actor not in unfinished:
+                    unfinished[adjacent_actor] = path_length_to_adjacent
                 else:
-                    min_obscurity_2 = actor2_k_obscurity
+                    cur_path_length_to_adjacent = unfinished[adjacent_actor]
+                    if cur_path_length_to_adjacent > path_length_to_adjacent:
+                        unfinished[adjacent_actor] = path_length_to_adjacent
 
-                cur_min_obscurity = matrix[row][col]
-                if cur_min_obscurity is None or min_obscurity_2 < cur_min_obscurity:
-                    matrix[row][col] = min_obscurity_2
-
+    return finished[actor2]
 
 
 # Change the `None` values in this dictionary to be the obscurity score
@@ -230,33 +201,27 @@ test = {(u'Ali, Tony', u'Allen, Woody'): 0.5657,
         (u'Thompson, Sophie (I)', u'Foley, Dave (I)'): 0.1095,
         (u'Tzur, Mira', u'Heston, Charlton'): 0.3642}
 
-def do_test(graph, matrix, actor1_name, actor2_name, expected):
-    for actor1 in graph:
-        if actor1.name == actor1_name:
-            break
-    else:
-        raise Exception("cannot find actor: {}".format(actor1_name))
-
-    for actor2 in graph:
-        if actor2.name == actor2_name:
-            break
-    else:
-        raise Exception("cannot find actor: {}".format(actor2_name))
-
-    row = actor1.index
-    col = actor2.index
-    if col > row:
-        row, col = col, row
-
-    actual = matrix[row][col]
-    if actual == expected:
-        print(u"PASS {}->{}".format(actor1, actor2).encode("US-ASCII", errors="replace"))
-    else:
-        print(u"** FAIL ** {}->{} actual={} expected={}".format(actor1, actor2, actual, expected).encode("US-ASCII", errors="replace"))
-
 if __name__ == "__main__":
     graph = load_graph()
-    least_obscure_paths = calculate_least_obscure_paths_between_actors(graph)
     for actors in test:
         expected = test[actors]
-        do_test(graph, least_obscure_paths, actors[0], actors[1], expected)
+        actor1_name, actor2_name = actors
+
+        for actor1 in graph:
+            if actor1.name == actor1_name:
+                break
+        else:
+            raise Exception("actor not found: {}".format(actor1_name))
+
+        for actor2 in graph:
+            if actor2.name == actor2_name:
+                break
+        else:
+            raise Exception("actor not found: {}".format(actor2_name))
+
+        print("Testing {} -> {}".format(actor1, actor2))
+        actual = calculate_least_obscure_path(graph, actor1, actor2)
+        if actual == expected:
+            print("PASS")
+        else:
+            print("** FAIL **: actual={} expected={}".format(actual, expected))
