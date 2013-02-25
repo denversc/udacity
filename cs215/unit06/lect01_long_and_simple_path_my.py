@@ -14,15 +14,22 @@ def long_and_simple_path(G, u, v, l):
     if not long_and_simple_decision(G, u, v, l):
         return False
     # Otherwise, build and return the path
-    if l <= 2:
-        return [u, v]
+    for node1 in tuple(G):
+        for node2 in tuple(G[node1]):
+            G = break_link(G, node1, node2)
+            if not long_and_simple_decision(G, u, v, l):
+                G = make_link(G, node1, node2)
 
-    for adjacent_node in G[v]:
-        sub_path = long_and_simple_path(G, u, adjacent_node, l - 1)
-        if sub_path:
-            return sub_path + [v]
-
-    return False
+    path = [u]
+    node = u
+    nextnode = G[node].keys()[0]
+    while nextnode != v:
+        path.append(nextnode)
+        nextnext0 = G[nextnode].keys()[0]
+        nextnext1 = G[nextnode].keys()[1]
+        if nextnext0 == node: (node, nextnode) = (nextnode, nextnext1)
+        else: (node, nextnode) = (nextnode, nextnext0)
+    return path + [v]
 
 #############
 
