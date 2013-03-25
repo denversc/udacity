@@ -43,6 +43,12 @@ def parse_time(s):
     return t
 
 def create_flights_graph(flights):
+    # NOTE: in order to make Dijkstra's algorithm simpler, all arriving flights
+    # to a city do not connect directly to the city, but rather connect to a
+    # unique dummy node that then connects to the city for 0 cost; this
+    # simplifies Dijkstra's because you then you don't have to worry about
+    # multiple edges between the same nodes
+    next_dummy_city_id = 0
     G = {}
     for flight in flights:
         (flight_num, depart_city, arrive_city, depart_time_str, arrive_time_str, cost) = flight
@@ -50,11 +56,13 @@ def create_flights_graph(flights):
         arrive_time = parse_time(arrive_time_str)
         flight_obj = Flight(flight_num, depart_city, arrive_city, depart_time, arrive_time, cost)
 
+        dummy_city_id = next_dummy_city_id
+        next_dummy_city_id += 1
+
         if depart_city not in G:
             G[depart_city] = {}
-        if arrive_city not in G[depart_city]:
-            G[depart_city][arrive_city] = []
-        G[depart_city][arrive_city].append(flight_obj)
+        G[depart_city][dummy_city_id] = flight_obj
+        G[dummy_city_id] = {arrive_city: None} # None indicates a free flight any time
     return G
 
 
@@ -78,17 +86,16 @@ def find_best_flights(flights, origin, destination):
         for adjacent_node in G[node]:
 
             # if we already know the best route to the adjacent city, skip it
-            # because this root is guaranteed to be longer
             if adjacent_node in completed:
                 continue
 
-            cheapest_flight = None
-            for flight in G[node][adjacent_node]:
-                if cheapest_flight is None or flight.cost < cheapest_flight.cost:
-                    cheapest_flight = flight
-
-            new_path = path + [cheapest_flight]
-            new_path_cost = cost + cheapest_flight.cost
+            # if the flight is None that means a free flight any time
+            flight = G[node][adjacent_node]
+            new_path = list(path)
+            if flight is not None:
+                new_path.append(flight)
+            flight_cost = 0 if flight is None else flight.cost
+            new_path_cost = cost + flight_cost
 
             if adjacent_node not in partial:
                 partial[adjacent_node] = (new_path_cost, new_path)
