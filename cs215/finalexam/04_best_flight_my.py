@@ -122,7 +122,7 @@ def find_best_flights(flights, origin, destination):
 
     destination_cities = cities[destination]
     destination_cities_remaining = set(destination_cities)
-    partial = {origin: (0, 0)}
+    partial = {origin: ((0, 0), [])}
     complete = {}
 
     while partial:
@@ -130,10 +130,12 @@ def find_best_flights(flights, origin, destination):
         # find the node with the smallest weight in partial
         node = None
         node_weight = None
-        for (cur_node, cur_node_weight) in partial.iteritems():
+        node_path = None
+        for (cur_node, (cur_node_weight, cur_path)) in partial.iteritems():
             if node is None or cur_node_weight < node_weight:
                 node = cur_node
                 node_weight = cur_node_weight
+                node_path = cur_path
 
         # update the weights for all nodes in partial
         for (adjacent_node, connecting_flight) in G[node].iteritems():
@@ -142,16 +144,17 @@ def find_best_flights(flights, origin, destination):
 
             connecting_flight_weight = connecting_flight.total_cost()
             adjacent_node_new_weight = node_weight + connecting_flight_weight
+            new_path = node_path + [connecting_flight]
             if adjacent_node not in partial:
-                partial[adjacent_node] = adjacent_node_new_weight
+                partial[adjacent_node] = (adjacent_node_new_weight, new_path)
             else:
                 adjacent_node_weight = partial[adjacent_node]
                 if adjacent_node_new_weight < adjacent_node_weight:
-                    partial[adjacent_node] = adjacent_node_new_weight
+                    partial[adjacent_node] = (adjacent_node_new_weight, new_path)
 
         # move this node into the completed set
         del partial[node]
-        complete[node] = node_weight
+        complete[node] = (node_weight, node_path)
 
         # update the list of uncompleted destination nodes, and break out if
         # all of them have been accounted for
@@ -160,15 +163,22 @@ def find_best_flights(flights, origin, destination):
             if len(destination_cities_remaining) == 0:
                 break
 
-    # either all or none of the destination cities should be complete; if only
-    # some of them are complete then the algorithm got messed up
-    if len(destination_cities_remaining) > 0:
-        assert len(destination_cities_remaining) == len(destination_cities)
+    # find all paths that made it all the way to the destination city
+    paths = []
+    for cur_destination_city in destination_cities:
+        if cur_destination_city in complete:
+            entry = complete[cur_destination_city]
+            paths.append(entry)
+
+    # if no paths made it all the way, there is no path at all; return None
+    if len(paths) == 0:
         return None
-    else:
-        costs = [complete[x] for x in destination_cities]
-        min_cost = min(costs)
-        return min_cost
+
+    # otherwise, find the smallest cost of all paths that made it
+    min_path_and_cost = min(paths, key=lambda x: x[0])
+    min_path_flight_objects = min_path_and_cost[1]
+    min_path = [x.number for x in min_path_flight_objects]
+    return min_path
 
 #
 # Here is a fictious flight schedule that is roughly based on routes
