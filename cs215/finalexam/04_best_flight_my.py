@@ -37,6 +37,11 @@ class Flight(object):
         self.arrive_time = arrive_time
         self.cost = cost
 
+    def total_cost(self):
+        flight_length = self.arrive_time - self.depart_time
+        total_cost = (self.cost, flight_length)
+        return total_cost
+
     def __str__(self):
         return ("{0.number} {0.depart_city} {0.depart_time} to "
             "{0.arrive_city} {0.arrive_time} for ${0.cost}".format(self))
@@ -81,7 +86,15 @@ def make_flight_graph(flights):
         depart_city = flight.depart_city
         if depart_city not in G:
             G[depart_city] = {}
-        G[depart_city][arrive_city_mangled] = flight
+
+        if arrive_city_mangled not in G[depart_city]:
+            G[depart_city][arrive_city_mangled] = flight
+        else:
+            conflicting_flight = G[depart_city][arrive_city_mangled]
+            flight_total_cost = flight.total_cost()
+            conflicting_flight_total_cost = conflicting_flight.total_cost()
+            if flight_total_cost < conflicting_flight_total_cost:
+                G[depart_city][arrive_city_mangled] = flight
 
         if depart_city not in cities:
             cities[depart_city] = set()
@@ -105,9 +118,57 @@ def make_flight_graph(flights):
 def find_best_flights(flights, origin, destination):
     flights = flight_tuples_to_objects(flights)
     flights = tuple(flights)
-    best_flights = []
-    # your code here
-    return best_flights
+    (G, cities) = make_flight_graph(flights)
+
+    destination_cities = cities[destination]
+    destination_cities_remaining = set(destination_cities)
+    partial = {origin: (0, 0)}
+    complete = {}
+
+    while partial:
+
+        # find the node with the smallest weight in partial
+        node = None
+        node_weight = None
+        for (cur_node, cur_node_weight) in partial.iteritems():
+            if node is None or cur_node_weight < node_weight:
+                node = cur_node
+                node_weight = cur_node_weight
+
+        # update the weights for all nodes in partial
+        for (adjacent_node, connecting_flight) in G[node].iteritems():
+            if adjacent_node in complete:
+                continue
+
+            connecting_flight_weight = connecting_flight.total_cost()
+            adjacent_node_new_weight = node_weight + connecting_flight_weight
+            if adjacent_node not in partial:
+                partial[adjacent_node] = adjacent_node_new_weight
+            else:
+                adjacent_node_weight = partial[adjacent_node]
+                if adjacent_node_new_weight < adjacent_node_weight:
+                    partial[adjacent_node] = adjacent_node_new_weight
+
+        # move this node into the completed set
+        del partial[node]
+        complete[node] = node_weight
+
+        # update the list of uncompleted destination nodes, and break out if
+        # all of them have been accounted for
+        if node in destination_cities:
+            destination_cities_remaining.remove(node)
+            if len(destination_cities_remaining) == 0:
+                break
+
+    # either all or none of the destination cities should be complete; if only
+    # some of them are complete then the algorithm got messed up
+    if len(destination_cities_remaining) > 0:
+        assert len(destination_cities_remaining) == len(destination_cities)
+        return None
+    else:
+        costs = [complete[x] for x in destination_cities]
+        min_cost = min(costs)
+        return min_cost
 
 #
 # Here is a fictious flight schedule that is roughly based on routes
@@ -295,7 +356,7 @@ all_flights = [(523, 'Broome', 'Derby', '07:17', '08:57', 60),
 
 import unittest
 
-class ProvidedTests(object):
+class ProvidedTests(unittest.TestCase):
 
     def test_MtMagnet_to_FitzroyCrossing(self):
         retval = find_best_flights(all_flights, 'Mt Magnet', 'Fitzroy Crossing')
@@ -414,6 +475,147 @@ class Test_make_flight_graph(unittest.TestCase):
         self.assert_dict_keys(G["C"], [("D", 80)])
         self.assertIs(G["C"][("D", 80)], flight2)
         self.assert_dict_keys(G[("D", 80)], [])
+
+    def test_2Flights_SameDepartureCity_DifferentArrivalCities(self):
+        flight1 = Flight(123, "A", "B", 20, 40, 100)
+        flight2 = Flight(456, "A", "C", 60, 80, 200)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B", "C"])
+        self.assert_dict_keys(G, ["A", ("B", 40), ("C", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40)]))
+        self.assertSetEqual(cities["C"], set([("C", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40), ("C", 80)])
+        self.assertIs(G["A"][("B", 40)], flight1)
+        self.assertIs(G["A"][("C", 80)], flight2)
+        self.assert_dict_keys(G[("B", 40)], [])
+        self.assert_dict_keys(G[("C", 80)], [])
+
+    def test_2Flights_SameDepartureCity_SameArrivalCities_DifferentTimes(self):
+        flight1 = Flight(123, "A", "B", 20, 40, 100)
+        flight2 = Flight(456, "A", "B", 60, 80, 200)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B"])
+        self.assert_dict_keys(G, ["A", ("B", 40), ("B", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40), ("B", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40), ("B", 80)])
+        self.assertIs(G["A"][("B", 40)], flight1)
+        self.assertIs(G["A"][("B", 80)], flight2)
+        self.assert_dict_keys(G[("B", 40)], [])
+        self.assert_dict_keys(G[("B", 80)], [])
+
+    def test_2Flights_SameDepartureCity_SameArrivalCities_SameTime_Flight1DollarCheaper(self):
+        flight1 = Flight(123, "A", "B", 20, 80, 100)
+        flight2 = Flight(456, "A", "B", 60, 80, 200)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B"])
+        self.assert_dict_keys(G, ["A", ("B", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 80)])
+        self.assertIs(G["A"][("B", 80)], flight1)
+        self.assert_dict_keys(G[("B", 80)], [])
+
+    def test_2Flights_SameDepartureCity_SameArrivalCities_SameTime_Flight1TimeCheaper(self):
+        flight1 = Flight(123, "A", "B", 20, 80, 100)
+        flight2 = Flight(456, "A", "B", 10, 80, 100)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B"])
+        self.assert_dict_keys(G, ["A", ("B", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 80)])
+        self.assertIs(G["A"][("B", 80)], flight1)
+        self.assert_dict_keys(G[("B", 80)], [])
+
+    def test_2Flights_SameDepartureCity_SameArrivalCities_SameTime_Flight2DollarCheaper(self):
+        flight1 = Flight(123, "A", "B", 20, 80, 200)
+        flight2 = Flight(456, "A", "B", 60, 80, 100)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B"])
+        self.assert_dict_keys(G, ["A", ("B", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 80)])
+        self.assertIs(G["A"][("B", 80)], flight2)
+        self.assert_dict_keys(G[("B", 80)], [])
+
+    def test_2Flights_SameDepartureCity_SameArrivalCities_SameTime_Flight2TimeCheaper(self):
+        flight1 = Flight(123, "A", "B", 20, 80, 100)
+        flight2 = Flight(456, "A", "B", 60, 80, 100)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B"])
+        self.assert_dict_keys(G, ["A", ("B", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 80)])
+        self.assertIs(G["A"][("B", 80)], flight2)
+        self.assert_dict_keys(G[("B", 80)], [])
+
+    def test_2Flights_Chain_Flight2LeavesLateEnoughToCatch(self):
+        flight1 = Flight(123, "A", "B", 20, 40, 100)
+        flight2 = Flight(456, "B", "C", 60, 80, 200)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B", "C"])
+        self.assert_dict_keys(G, ["A", "B", ("B", 40), ("C", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40)]))
+        self.assertSetEqual(cities["C"], set([("C", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40)])
+        self.assertIs(G["A"][("B", 40)], flight1)
+        self.assert_dict_keys(G[("B", 40)], [("C", 80)])
+        self.assertIs(G[("B", 40)][("C", 80)], flight2)
+        self.assert_dict_keys(G[("C", 80)], [])
+
+    def test_2Flights_Chain_Flight2LeavesTooEarlyToCatch(self):
+        flight1 = Flight(123, "A", "B", 20, 40, 100)
+        flight2 = Flight(456, "B", "C", 39, 80, 200)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B", "C"])
+        self.assert_dict_keys(G, ["A", "B", ("B", 40), ("C", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40)]))
+        self.assertSetEqual(cities["C"], set([("C", 80)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40)])
+        self.assertIs(G["A"][("B", 40)], flight1)
+        self.assert_dict_keys(G[("B", 40)], [])
+        self.assert_dict_keys(G[("C", 80)], [])
+
+    def test_3Flights_Diamond(self):
+        flight1 = Flight(123, "A", "B", 20, 40, 100)
+        flight2 = Flight(456, "A", "B", 60, 80, 200)
+        flight3 = Flight(789, "B", "C", 70, 90, 300)
+        (G, cities) = make_flight_graph([flight1, flight2, flight3])
+
+        self.assert_dict_keys(cities, ["A", "B", "C"])
+        self.assert_dict_keys(G, ["A", "B", ("B", 40), ("B", 80), ("C", 90)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40), ("B", 80)]))
+        self.assertSetEqual(cities["C"], set([("C", 90)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40), ("B", 80)])
+        self.assertIs(G["A"][("B", 40)], flight1)
+        self.assertIs(G["A"][("B", 80)], flight2)
+        self.assert_dict_keys(G[("B", 40)], [("C", 90)])
+        self.assert_dict_keys(G[("B", 80)], [])
+        self.assert_dict_keys(G[("C", 90)], [])
 
     def assert_dict_keys(self, d, expected_keys):
         actual_keys_set = set(d.viewkeys())
