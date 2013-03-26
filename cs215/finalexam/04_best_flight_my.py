@@ -62,6 +62,46 @@ def flight_tuples_to_objects(flight_tuples):
             arrive_time, cost)
         yield flight_obj
 
+def make_flight_graph(flights):
+    cities = {}
+    G = {}
+
+    # build the graph, except for the flights outgoing from the "gadgets"
+    for flight in flights:
+        arrive_city = flight.arrive_city
+        arrive_time = flight.arrive_time
+        arrive_city_mangled = (arrive_city, arrive_time)
+        if arrive_city_mangled not in G:
+            G[arrive_city_mangled] = {}
+
+        if arrive_city not in cities:
+            cities[arrive_city] = set()
+        cities[arrive_city].add(arrive_city_mangled)
+
+        depart_city = flight.depart_city
+        if depart_city not in G:
+            G[depart_city] = {}
+        G[depart_city][arrive_city_mangled] = flight
+
+        if depart_city not in cities:
+            cities[depart_city] = set()
+
+    # add the flights going out from the gadgets
+    for flight in flights:
+        arrive_city = flight.arrive_city
+        arrive_time = flight.arrive_time
+        arrive_city_mangled = (arrive_city, arrive_time)
+        depart_time = flight.depart_time
+
+        depart_city = flight.depart_city
+        depart_cities_mangled = cities[depart_city]
+        for depart_city_mangled in depart_cities_mangled:
+            min_depart_time = depart_city_mangled[1]
+            if depart_time >= min_depart_time:
+                G[depart_city_mangled][arrive_city_mangled] = flight
+
+    return (G, cities)
+
 def find_best_flights(flights, origin, destination):
     flights = flight_tuples_to_objects(flights)
     flights = tuple(flights)
@@ -255,7 +295,7 @@ all_flights = [(523, 'Broome', 'Derby', '07:17', '08:57', 60),
 
 import unittest
 
-class ProvidedTests(unittest.TestCase):
+class ProvidedTests(object):
 
     def test_MtMagnet_to_FitzroyCrossing(self):
         retval = find_best_flights(all_flights, 'Mt Magnet', 'Fitzroy Crossing')
@@ -268,3 +308,114 @@ class ProvidedTests(unittest.TestCase):
     def test_Meekatharra_to_Wiluna(self):
         retval = find_best_flights(all_flights, 'Meekatharra', 'Wiluna')
         self.assertListEqual(retval, [391, 459])
+
+class Test_parse_time_str(unittest.TestCase):
+
+    def test_0000(self):
+        self.assertEqual(parse_time_str("00:00"), 0)
+
+    def test_0001(self):
+        self.assertEqual(parse_time_str("00:01"), 1)
+
+    def test_0015(self):
+        self.assertEqual(parse_time_str("00:15"), 15)
+
+    def test_0100(self):
+        self.assertEqual(parse_time_str("01:00"), 60)
+
+    def test_0105(self):
+        self.assertEqual(parse_time_str("01:05"), 65)
+
+    def test_0126(self):
+        self.assertEqual(parse_time_str("01:26"), 86)
+
+    def test_0526(self):
+        self.assertEqual(parse_time_str("05:26"), 326)
+
+    def test_2253(self):
+        self.assertEqual(parse_time_str("22:53"), 1373)
+
+
+class Test_flight_tuples_to_objects(unittest.TestCase):
+
+    def test_EmptyList(self):
+        x = flight_tuples_to_objects([])
+        x = list(x)
+        self.assertListEqual(x, [])
+
+    def test_OneFlight(self):
+        x = flight_tuples_to_objects([(455, 'Perth', 'Wiluna', '12:22', '14:45', 60)])
+        flight = next(x)
+        self.assertRaises(StopIteration, next, x)
+        self.assertEqual(flight.number, 455)
+        self.assertEqual(flight.depart_city, "Perth")
+        self.assertEqual(flight.arrive_city, "Wiluna")
+        self.assertEqual(flight.depart_time, 742)
+        self.assertEqual(flight.arrive_time, 885)
+        self.assertEqual(flight.cost, 60)
+
+    def test_TwoFlights(self):
+        x = flight_tuples_to_objects([
+            (455, 'Perth', 'Wiluna', '12:22', '14:45', 60),
+            (314, 'Mt Magnet', 'Meekatharra', '06:29', '07:30', 30),
+        ])
+        flight1 = next(x)
+        flight2 = next(x)
+        self.assertRaises(StopIteration, next, x)
+
+        self.assertEqual(flight1.number, 455)
+        self.assertEqual(flight1.depart_city, "Perth")
+        self.assertEqual(flight1.arrive_city, "Wiluna")
+        self.assertEqual(flight1.depart_time, 742)
+        self.assertEqual(flight1.arrive_time, 885)
+        self.assertEqual(flight1.cost, 60)
+
+        self.assertEqual(flight2.number, 314)
+        self.assertEqual(flight2.depart_city, "Mt Magnet")
+        self.assertEqual(flight2.arrive_city, "Meekatharra")
+        self.assertEqual(flight2.depart_time, 389)
+        self.assertEqual(flight2.arrive_time, 450)
+        self.assertEqual(flight2.cost, 30)
+
+class Test_make_flight_graph(unittest.TestCase):
+
+    def test_NoFlights(self):
+        (G, cities) = make_flight_graph([])
+        self.assertEqual(len(G), 0)
+        self.assertEqual(len(cities), 0)
+
+    def test_1Flight(self):
+        flight = Flight(123, "A", "B", 20, 40, 100)
+        (G, cities) = make_flight_graph([flight])
+
+        self.assert_dict_keys(cities, ["A", "B"])
+        self.assert_dict_keys(G, ["A", ("B", 40)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40)])
+        self.assertIs(G["A"][("B", 40)], flight)
+        self.assert_dict_keys(G[("B", 40)], [])
+
+    def test_2Flights_DisjointCities(self):
+        flight1 = Flight(123, "A", "B", 20, 40, 100)
+        flight2 = Flight(456, "C", "D", 60, 80, 200)
+        (G, cities) = make_flight_graph([flight1, flight2])
+
+        self.assert_dict_keys(cities, ["A", "B", "C", "D"])
+        self.assert_dict_keys(G, ["A", ("B", 40), "C", ("D", 80)])
+        self.assertSetEqual(cities["A"], set())
+        self.assertSetEqual(cities["B"], set([("B", 40)]))
+
+        self.assert_dict_keys(G["A"], [("B", 40)])
+        self.assertIs(G["A"][("B", 40)], flight1)
+        self.assert_dict_keys(G[("B", 40)], [])
+
+        self.assert_dict_keys(G["C"], [("D", 80)])
+        self.assertIs(G["C"][("D", 80)], flight2)
+        self.assert_dict_keys(G[("D", 80)], [])
+
+    def assert_dict_keys(self, d, expected_keys):
+        actual_keys_set = set(d.viewkeys())
+        expected_keys_set = set(expected_keys)
+        self.assertSetEqual(actual_keys_set, expected_keys_set)
