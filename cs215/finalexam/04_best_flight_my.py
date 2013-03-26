@@ -27,6 +27,7 @@
 #
 
 class Flight(object):
+
     def __init__(self, flight_num, depart_city, arrive_city, depart_time, arrive_time, cost):
         self.flight_num = flight_num
         self.depart_city = depart_city
@@ -34,6 +35,21 @@ class Flight(object):
         self.depart_time = depart_time
         self.arrive_time = arrive_time
         self.cost = cost
+        self.flight_time = arrive_time - depart_time
+        
+    def clone(self):
+        return Flight(flight_num=self.flight_num, depart_city=self.depart_city,
+            arrive_city=self.arrive_city, depart_time=self.depart_time,
+            arrive_time=self.arrive_time, cost=self.cost)
+
+    def __str__(self):
+        return ("{0.flight_num} {0.depart_city} {0.depart_time} -> "
+            "{0.arrive_city} {0.arrive_time}".format(self))
+    
+    def __repr__(self):
+        return ("Flight(flight_num={0.flight_num}, depart_city={0.depart_city}, "
+            "arrive_city={0.arrive_city}, depart_time={0.depart_time}, "
+            "arrive_time={0.arrive_time}, cost={0.cost})".format(self))
 
 def parse_time(s):
     (hour_str, minute_str) = s.split(":")
@@ -42,32 +58,60 @@ def parse_time(s):
     t = (hour * 60) + minute
     return t
 
-def create_flights_graph(flights):
-    # NOTE: in order to make Dijkstra's algorithm simpler, all arriving flights
-    # to a city do not connect directly to the city, but rather connect to a
-    # unique dummy node that then connects to the city for 0 cost; this
-    # simplifies Dijkstra's because you then you don't have to worry about
-    # multiple edges between the same nodes
-    next_dummy_city_id = 0
-    G = {}
+def create_flights_map(flights, origin, destination):
+    flight_objects = []
     for flight in flights:
         (flight_num, depart_city, arrive_city, depart_time_str, arrive_time_str, cost) = flight
         depart_time = parse_time(depart_time_str)
         arrive_time = parse_time(arrive_time_str)
         flight_obj = Flight(flight_num, depart_city, arrive_city, depart_time, arrive_time, cost)
+        flight_objects.append(flight_obj)
+    
+    flights_map = {}
+    for flight in flight_objects:
+        depart_city = flight.depart_city
+        arrive_city = flight.arrive_city
+        if depart_city not in flights_map:
+            flights_map[depart_city] = {}
+        if arrive_city not in flights_map[depart_city]:
+            flights_map[depart_city][arrive_city] = []
+        flights_map[depart_city][arrive_city].append(flight)
+    
+    cities = {}
+    G = {origin: {}}
+    for flight in flight_objects:
+        arrive_city = flight.arrive_city
+        if arrive_city == origin:
+            # we don't care about flights coming into our origin
+            continue
+        
+        arrive_city_mangled = (arrive_city, flight.arrive_time)
+        G[arrive_city_mangled] = {}
+        
+        if arrive_city not in cities:
+            cities[arrive_city] = set()
+        cities[arrive_city].add(arrive_city_mangled)
+        cities[arrive_city_mangled] = arrive_city
+    
+    for flight in flight_objects:
+        depart_city = flight.depart_city
+        if depart_city == origin:
+            depart_cities_mangled = [origin]
+        else:
+            depart_cities_mangled = cities[depart_city]
+            
+        arrive_city = flight.arrive_city
+        arrive_city_mangled = (arrive_city, flight.arrive_time)
+        for depart_city_mangled in depart_cities_mangled:
+            if arrive_city_mangled not in G[depart_city_mangled]:
+                G[depart_city_mangled] = {}
+            if flight.depart_time >= depart_city_mangled[1]:
+                G[depart_city_mangled][arrive_city_mangled] = flight
 
-        dummy_city_id = next_dummy_city_id
-        next_dummy_city_id += 1
-
-        if depart_city not in G:
-            G[depart_city] = {}
-        G[depart_city][dummy_city_id] = flight_obj
-        G[dummy_city_id] = {arrive_city: None} # None indicates a free flight any time
-    return G
-
+    return (G, cities[destination])
 
 def find_best_flights(flights, origin, destination):
-    G = create_flights_graph(flights)
+    (G, destination_cities) = create_flights_map(flights, origin, destination)
 
     partial = {origin: (0, [])}
     completed = {}
@@ -80,34 +124,60 @@ def find_best_flights(flights, origin, destination):
                 shortest = (node, cost, path)
         del partial[shortest[0]]
         return shortest
-
-    while partial:
+    
+    destination_cities_remaining = set(destination_cities)
+    while partial and destination_cities_remaining:
         (node, cost, path) = pop_shortest_path_from_partial()
-        for adjacent_node in G[node]:
+        adjacent_nodes = G[node]
+        for adjacent_node in adjacent_nodes:
 
             # if we already know the best route to the adjacent city, skip it
             if adjacent_node in completed:
                 continue
 
-            # if the flight is None that means a free flight any time
-            flight = G[node][adjacent_node]
-            new_path = list(path)
-            if flight is not None:
-                new_path.append(flight)
-            flight_cost = 0 if flight is None else flight.cost
-            new_path_cost = cost + flight_cost
-
-            if adjacent_node not in partial:
-                partial[adjacent_node] = (new_path_cost, new_path)
-            else:
-                cur_partial_path_cost = partial[adjacent_node][0]
-                if new_path_cost < cur_partial_path_cost:
+            # only consider this flight if it departs after our arrival
+            for flight in adjacent_nodes[adjacent_node]:
+                if len(path) > 0:
+                    arrive_time = path[-1].arrive_time
+                    depart_time = flight.depart_time
+                    if depart_time < arrive_time:
+                        continue
+    
+                new_path = list(path) + [flight]
+                flight_cost = flight.cost
+                new_path_cost = cost + flight_cost
+                
+                if adjacent_node not in partial:
                     partial[adjacent_node] = (new_path_cost, new_path)
+                else:
+                    cur_partial_path_cost = partial[adjacent_node][0]
+                    if new_path_cost < cur_partial_path_cost:
+                        partial[adjacent_node] = (new_path_cost, new_path)
+                    elif new_path_cost == cur_partial_path_cost:
+                        partial_flight = partial[adjacent_node][1][-1]
+                        partial_flight_length = partial_flight.arrive_time - partial_flight.depart_time
+                        flight_length = flight.arrive_time - flight.depart_time
+                        if flight_length < partial_flight_length:
+                            partial[adjacent_node] = (new_path_cost, new_path)
 
-        if node == destination:
-            return [x.flight_num for x in path]
-
-        completed[node] = path
+        if node in destination_cities_remaining:
+            destination_cities_remaining.remove(node)
+        
+        completed[node] = (path, cost)
+    
+    if not destination_cities_remaining:
+        cheapest_path_and_cost = None
+        for city in destination_cities:
+            (path, cost) = completed[city]
+            if cheapest_path_and_cost is None:
+                cheapest_path_and_cost = (path, cost)
+            elif cost < cheapest_path_and_cost[1]:
+                cheapest_path_and_cost = (path, cost)
+        
+        cheapest_path_flights = cheapest_path_and_cost[0]
+        cheapest_path = [x.flight_num for x in cheapest_path_flights]
+        return cheapest_path
+        
 
 #
 # Here is a fictious flight schedule that is roughly based on routes
