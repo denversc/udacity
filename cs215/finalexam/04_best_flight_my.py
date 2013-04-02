@@ -143,45 +143,45 @@ def find_best_flights(flights, origin, destination):
     flights = tuple(flights)
     G = make_flight_graph(flights, origin, destination)
 
-    partial = {origin: ((0, 0), [])}
-    complete = {}
+    unvisited = {origin: (0, [])}
+    visited = set()
 
-    while partial:
+    while unvisited:
 
-        # find the node with the smallest weight in partial
+        # find the node with the smallest weight in the unvisited set
         node = None
         node_weight = None
         node_path = None
-        for (cur_node, (cur_node_weight, cur_path)) in partial.iteritems():
+        for (cur_node, (cur_node_weight, cur_path)) in unvisited.iteritems():
             if node is None or cur_node_weight < node_weight:
                 node = cur_node
                 node_weight = cur_node_weight
                 node_path = cur_path
 
-        # update the weights for all nodes in partial
+        # update the weights for all unvisited neighbours of the node
         for (adjacent_node, connecting_flight) in G[node].iteritems():
-            if adjacent_node in complete:
+            if adjacent_node in visited:
                 continue
 
-            connecting_flight_weight = connecting_flight.total_cost()
+            connecting_flight_weight = connecting_flight.cost
             adjacent_node_new_weight = node_weight + connecting_flight_weight
             new_path = node_path + [connecting_flight]
-            if adjacent_node not in partial:
-                partial[adjacent_node] = (adjacent_node_new_weight, new_path)
+            if adjacent_node not in unvisited:
+                unvisited[adjacent_node] = (adjacent_node_new_weight, new_path)
             else:
-                adjacent_node_weight = partial[adjacent_node]
+                adjacent_node_weight = unvisited[adjacent_node][0]
                 if adjacent_node_new_weight < adjacent_node_weight:
-                    partial[adjacent_node] = (adjacent_node_new_weight, new_path)
+                    unvisited[adjacent_node] = (adjacent_node_new_weight, new_path)
 
         # move this node into the completed set
-        del partial[node]
-        complete[node] = (node_weight, node_path)
+        del unvisited[node]
+        visited.add(node)
 
         if node == destination:
             break
 
     else:
-        # we never completed destination; must not be a path to it
+        # we never completed the destination; must not be a path to it
         return None
 
     # if we got here then the "break" statement was executed and node_path and
