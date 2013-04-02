@@ -37,10 +37,9 @@ class Flight(object):
         self.arrive_time = arrive_time
         self.cost = cost
 
-    def total_cost(self):
+    def flight_length(self):
         flight_length = self.arrive_time - self.depart_time
-        total_cost = (self.cost, flight_length)
-        return total_cost
+        return flight_length
 
     def __eq__(self, other):
         if self.number != other.number: return False
@@ -172,6 +171,12 @@ def find_best_flights(flights, origin, destination):
                 adjacent_node_weight = unvisited[adjacent_node][0]
                 if adjacent_node_new_weight < adjacent_node_weight:
                     unvisited[adjacent_node] = (adjacent_node_new_weight, new_path)
+                elif adjacent_node_new_weight == adjacent_node_weight:
+                    new_flight_depart_time = new_path[0].depart_time
+                    adjacent_path = unvisited[adjacent_node][1]
+                    adjacent_flight_depart_time = adjacent_path[0].depart_time
+                    if new_flight_depart_time > adjacent_flight_depart_time:
+                        unvisited[adjacent_node] = (adjacent_node_new_weight, new_path)
 
         # move this node into the completed set
         del unvisited[node]
