@@ -22,8 +22,47 @@
 # that node
 #
 def create_labels(binarytreeG, root):
+    # The label for each node will contain:
+    #   1. its left child
+    #   2. its right child
+    #   3. each parent node up to the root
+
+    root_children = [x for x in binarytreeG[root]]
+
+    # unvisited contains 3-tuples: (node, children, path_to_root)
+    # where "node" is the node itself, "children" is a list containing
+    # the node's child nodes, and "path_to_root" is a list of nodes that
+    # are the path to the root node.
+    unvisited = [(root, root_children, [])]
     labels = {}
-    # your code here
+
+    while unvisited:
+        (node, children, path_to_root) = unvisited[0]
+        del unvisited[0]
+        label = {node: 0}
+        labels[node] = label
+
+        # add the child nodes to the label
+        for child in children:
+            node_to_child_weight = binarytreeG[node][child]
+            label[child] = node_to_child_weight
+
+        # add the path to the root node to the label
+        last_node = node
+        distance_to_parent = 0
+        for parent in path_to_root:
+            last_node_to_parent_weight = binarytreeG[last_node][parent]
+            distance_to_parent += last_node_to_parent_weight
+            label[parent] = distance_to_parent
+            last_node = parent
+
+        # add the child nodes to the queue
+        child_path_to_root = [node] + path_to_root
+        for child in children:
+            child_children = [x for x in binarytreeG[child] if x != node]
+            unvisited_element = (child, child_children, child_path_to_root)
+            unvisited.append(unvisited_element)
+
     return labels
 
 #######
@@ -94,3 +133,132 @@ class ProvidedTests(unittest.TestCase):
         labels = create_labels(tree, 1)
         distances = get_distances(tree, labels)
         self.assertEqual(distances[1][4], 2)
+
+class DenverTests(unittest.TestCase):
+
+    def make_graph(self):
+        edges = [(1, 2), (1, 3), (2, 4), (2, 5), (3, 6), (3, 7),
+                 (4, 8), (4, 9), (5, 10), (5, 11), (6, 12), (6, 13)]
+        tree = {}
+        for n1, n2 in edges:
+            make_link(tree, n1, n2)
+        return tree
+
+    def test1(self):
+        tree = self.make_graph()
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][9], 3)
+
+    def test2(self):
+        tree = self.make_graph()
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[3][9], 4)
+
+    def test3(self):
+        tree = self.make_graph()
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[8][13], 6)
+
+    def test4(self):
+        tree = {1: {}}
+        labels = create_labels(tree, 1)
+        self.assertDictEqual(labels, {1: {1: 0}})
+
+    def test_3nodes_1to1(self):
+        tree = {}
+        make_link(tree, 1, 2)
+        make_link(tree, 1, 3)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][1], 0)
+
+    def test_3nodes_1to2(self):
+        tree = {}
+        make_link(tree, 1, 2)
+        make_link(tree, 1, 3)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][2], 1)
+
+    def test_3nodes_1to3(self):
+        tree = {}
+        make_link(tree, 1, 2)
+        make_link(tree, 1, 3)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][3], 1)
+
+    def test_3nodes_2to2(self):
+        tree = {}
+        make_link(tree, 1, 2)
+        make_link(tree, 1, 3)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[2][2], 0)
+
+    def test_3nodes_2to1(self):
+        tree = {}
+        make_link(tree, 1, 2)
+        make_link(tree, 1, 3)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[2][1], 1)
+
+    def test_3nodes_2to3(self):
+        tree = {}
+        make_link(tree, 1, 2)
+        make_link(tree, 1, 3)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[2][3], 2)
+
+    def test_3nodes_weighted_1to1(self):
+        tree = {}
+        make_link(tree, 1, 2, 2)
+        make_link(tree, 1, 3, 5)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][1], 0)
+
+    def test_3nodes_weighted_1to2(self):
+        tree = {}
+        make_link(tree, 1, 2, 2)
+        make_link(tree, 1, 3, 5)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][2], 2)
+
+    def test_3nodes_weighted_1to3(self):
+        tree = {}
+        make_link(tree, 1, 2, 2)
+        make_link(tree, 1, 3, 5)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[1][3], 5)
+
+    def test_3nodes_weighted_2to2(self):
+        tree = {}
+        make_link(tree, 1, 2, 2)
+        make_link(tree, 1, 3, 5)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[2][2], 0)
+
+    def test_3nodes_weighted_2to1(self):
+        tree = {}
+        make_link(tree, 1, 2, 2)
+        make_link(tree, 1, 3, 5)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[2][1], 2)
+
+    def test_3nodes_weighted_2to3(self):
+        tree = {}
+        make_link(tree, 1, 2, 2)
+        make_link(tree, 1, 3, 5)
+        labels = create_labels(tree, 1)
+        distances = get_distances(tree, labels)
+        self.assertEqual(distances[2][3], 7)
