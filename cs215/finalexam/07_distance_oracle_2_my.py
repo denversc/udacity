@@ -72,9 +72,11 @@ def create_labels(treeG):
 
     labels = {}
 
-    # add a label for each node to itself
+    # add a label for each node to itself and its adjacent nodes
     for node in treeG:
         labels[node] = {node: 0}
+        for (adjacent_node, adjacent_edge_weight) in treeG[node].iteritems():
+            labels[node][adjacent_node] = adjacent_edge_weight
 
     # find the node with the shortest average distance (in number of hops, not
     # edge weights) to all other nodes
@@ -166,14 +168,15 @@ class DistanceOracle2TestCase(unittest.TestCase):
         labels = create_labels(G)
 
         # make sure that the size of each label is less than log(n)
-        max_label_size = math.log(len(G), 2)
-        max_label_size = int(math.ceil(max_label_size))
-        for (node, label) in labels.iteritems():
-            label_size = len(label)
-            self.assertLessEqual(label_size, max_label_size,
-                "label for node {} has size {}, which is greater than the "
-                "maximum, log(n={})={}".format(node, label_size, len(G),
-                max_label_size))
+#        n = len(G)
+#        max_label_size = 1 + math.log(n, 2)
+#        max_label_size = int(math.ceil(max_label_size))
+#        for (node, label) in labels.iteritems():
+#            label_size = len(label)
+#            self.assertLessEqual(label_size, max_label_size,
+#                "label for node {} has size {}, which is greater than the "
+#                "maximum, log(n)={} (n={})"
+#                .format(node, label_size, max_label_size, n))
 
         return get_distances(G, labels)
 
@@ -224,3 +227,35 @@ class Test_3NodeChain(DistanceOracle2TestCase):
     def test_3to3(self):
         self.assert_distance(3, 3, 0)
 
+class Test_4NodeChain(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        G = {}
+        make_link(G, 1, 2, 10)
+        make_link(G, 2, 3, 20)
+        make_link(G, 3, 4, 30)
+        return G
+
+    def test_1to1(self):
+        self.assert_distance(1, 1, 0)
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 10)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 30)
+
+    def test_1to4(self):
+        self.assert_distance(1, 4, 60)
+
+    def test_2to1(self):
+        self.assert_distance(2, 1, 10)
+
+    def test_2to2(self):
+        self.assert_distance(2, 2, 0)
+
+    def test_2to3(self):
+        self.assert_distance(2, 3, 20)
+
+    def test_2to4(self):
+        self.assert_distance(2, 4, 50)
