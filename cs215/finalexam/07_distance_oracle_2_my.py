@@ -507,3 +507,158 @@ class Test_9NodeRightWeightedHangman(DistanceOracle2TestCase):
 
     def test_3to8(self):
         self.assert_distance(3, 8, 60)
+
+class Test_FromForums_BinaryTree(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        edges = [(1, 2), (1, 3), (2, 4), (2, 5), (3, 6), (3, 7),
+             (4, 8), (4, 9), (5, 10), (5, 11), (6, 12), (6, 13)]
+        G = {}
+        for (n1, n2) in edges:
+            make_link(G, n1, n2)
+        return G
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 1)
+
+    def test_1to4(self):
+        self.assert_distance(1, 4, 2)
+
+    def test_4to7(self):
+        self.assert_distance(4, 7, 4)
+
+    def test_4to1(self):
+        self.assert_distance(4, 1, 2)
+
+    def test_2to1(self):
+        self.assert_distance(2, 1, 1)
+
+    def test_1to1(self):
+        self.assert_distance(1, 1, 0)
+
+    def test_2to2(self):
+        self.assert_distance(2, 2, 0)
+
+    def test_9to9(self):
+        self.assert_distance(9, 9, 0)
+
+    def test_2to3(self):
+        self.assert_distance(2, 3, 2)
+
+    def test_12to13(self):
+        self.assert_distance(12, 13, 2)
+
+    def test_13to8(self):
+        self.assert_distance(13, 8, 6)
+
+    def test_11to12(self):
+        self.assert_distance(11, 12, 6)
+
+    def test_1to12(self):
+        self.assert_distance(1, 12, 3)
+
+class Test_FromForums_Chain(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        edges = [(1, 2), (2, 3), (3, 4), (4, 5), (5, 6), (6, 7),
+             (7, 8), (8, 9), (9, 10), (10, 11), (11, 12), (12, 13)]
+        G = {}
+        for (n1, n2) in edges:
+            make_link(G, n1, n2)
+        return G
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 1)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 2)
+
+    def test_1to13(self):
+        self.assert_distance(1, 13, 12)
+
+    def test_6to1(self):
+        self.assert_distance(6, 1, 5)
+
+    def test_6to13(self):
+        self.assert_distance(6, 13, 7)
+
+    def test_8to3(self):
+        self.assert_distance(8, 3, 5)
+
+    def test_10to4(self):
+        self.assert_distance(10, 4, 6)
+
+class Test_FromForums_UnbalancedTree(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        edges = [(0, 1), (1, 2), (2, 3), (3, 4), (3, 6), (4, 5), (16, 6),
+            (6, 7), (6, 11), (7, 8), (8, 9), (8, 10), (10, 14), (14, 15),
+            (11, 12), (12, 13)]
+        G = {}
+        for (n1, n2) in edges:
+            make_link(G, n1, n2)
+        return G
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 1)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 2)
+
+    def test_1to13(self):
+        self.assert_distance(1, 13, 6)
+
+    def test_15to0(self):
+        self.assert_distance(15, 0, 9)
+
+    def test_6to13(self):
+        self.assert_distance(6, 13, 3)
+
+    def test_6to6(self):
+        self.assert_distance(6, 6, 0)
+
+    def test_8to5(self):
+        self.assert_distance(8, 5, 5)
+
+    def test_10to4(self):
+        self.assert_distance(10, 4, 5)
+
+class Test_FromForums_StarChain(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        edges = [(1, 2), (2, 3), (3, 4), (4, 5), (1, 6), (6, 7),
+             (7, 8), (8, 9), (1, 10), (10, 11), (11, 12), (12, 13)]
+        G = {}
+        for (n1, n2) in edges:
+            make_link(G, n1, n2)
+        return G
+
+    def test_1to1(self):
+        self.assert_distance(1, 1, 0)
+
+    def test_5to5(self):
+        self.assert_distance(5, 5, 0)
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 1)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 2)
+
+    def test_1to4(self):
+        self.assert_distance(1, 4, 3)
+
+    def test_1to5(self):
+        self.assert_distance(1, 5, 4)
+
+    def test_5to6(self):
+        self.assert_distance(5, 6, 5)
+
+    def test_5to7(self):
+        self.assert_distance(5, 7, 6)
+
+    def test_5to8(self):
+        self.assert_distance(5, 8, 7)
+
+    def test_5to9(self):
+        self.assert_distance(5, 9, 8)
