@@ -80,12 +80,16 @@ def find_longest_path_length(G, node):
 def find_middle_node(G):
     # Searches the graph G for a node such that when that node is used as the
     # root, then the longest path has length n/2
-    max_score = len(G) / 2
+    middle_node = None
+    middle_node_score = 0
     for root in G:
         score = find_longest_path_length(G, root)
-        if score <= max_score:
-            return root
-    assert False, "Denver's theorem failure"
+        if middle_node is None or score < middle_node_score:
+            middle_node = root
+            middle_node_score = score
+
+    assert middle_node_score <= len(G) / 2, "Denver's theorem failure"
+    return middle_node
 
 def create_labels(treeG):
     # special case: if the graph is empty, return an empty graph;
