@@ -169,12 +169,10 @@ class ProvidedTests(unittest.TestCase):
         distances = get_distances(tree, labels)
         return distances
 
-    @unittest.SkipTest
     def test1(self):
         distances = self.process_graph()
         self.assertEqual(distances[1][2], 1)
 
-    @unittest.SkipTest
     def test2(self):
         distances = self.process_graph()
         self.assertEqual(distances[1][4], 2)
@@ -287,3 +285,58 @@ class Test_4NodeChain(DistanceOracle2TestCase):
 
     def test_2to4(self):
         self.assert_distance(2, 4, 50)
+
+class Test_5NodeStart(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        G = {}
+        make_link(G, 1, 2, 10)
+        make_link(G, 1, 3, 20)
+        make_link(G, 1, 4, 30)
+        make_link(G, 1, 5, 40)
+        return G
+
+    def test_1to1(self):
+        self.assert_distance(1, 1, 0)
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 10)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 20)
+
+    def test_1to4(self):
+        self.assert_distance(1, 4, 30)
+
+    def test_1to5(self):
+        self.assert_distance(1, 5, 40)
+
+    def test_2to1(self):
+        self.assert_distance(2, 1, 10)
+
+    def test_2to2(self):
+        self.assert_distance(2, 2, 0)
+
+    def test_2to3(self):
+        self.assert_distance(2, 3, 30)
+
+    def test_2to4(self):
+        self.assert_distance(2, 4, 40)
+
+    def test_2to5(self):
+        self.assert_distance(2, 5, 50)
+
+    def test_3to1(self):
+        self.assert_distance(3, 1, 20)
+
+    def test_3to2(self):
+        self.assert_distance(3, 2, 30)
+
+    def test_3to3(self):
+        self.assert_distance(3, 3, 0)
+
+    def test_3to4(self):
+        self.assert_distance(3, 4, 50)
+
+    def test_3to5(self):
+        self.assert_distance(3, 5, 60)
