@@ -286,7 +286,7 @@ class Test_4NodeChain(DistanceOracle2TestCase):
     def test_2to4(self):
         self.assert_distance(2, 4, 50)
 
-class Test_5NodeStart(DistanceOracle2TestCase):
+class Test_5NodeStar(DistanceOracle2TestCase):
 
     def create_graph(self):
         G = {}
@@ -340,3 +340,166 @@ class Test_5NodeStart(DistanceOracle2TestCase):
 
     def test_3to5(self):
         self.assert_distance(3, 5, 60)
+
+class Test_10NodeExpandedStarishNetwork(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        G = {}
+        make_link(G, 1, 2, 10)
+        make_link(G, 1, 3, 20)
+        make_link(G, 1, 4, 30)
+        make_link(G, 1, 5, 40)
+        make_link(G, 2, 6, 15)
+        make_link(G, 2, 7, 25)
+        make_link(G, 3, 8, 35)
+        make_link(G, 3, 9, 45)
+        make_link(G, 4, 10, 55)
+        return G
+
+    def test_1to1(self):
+        self.assert_distance(1, 1, 0)
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 10)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 20)
+
+    def test_1to4(self):
+        self.assert_distance(1, 4, 30)
+
+    def test_1to5(self):
+        self.assert_distance(1, 5, 40)
+
+    def test_2to1(self):
+        self.assert_distance(2, 1, 10)
+
+    def test_2to2(self):
+        self.assert_distance(2, 2, 0)
+
+    def test_2to3(self):
+        self.assert_distance(2, 3, 30)
+
+    def test_2to4(self):
+        self.assert_distance(2, 4, 40)
+
+    def test_2to5(self):
+        self.assert_distance(2, 5, 50)
+
+    def test_3to1(self):
+        self.assert_distance(3, 1, 20)
+
+    def test_3to2(self):
+        self.assert_distance(3, 2, 30)
+
+    def test_3to3(self):
+        self.assert_distance(3, 3, 0)
+
+    def test_3to4(self):
+        self.assert_distance(3, 4, 50)
+
+    def test_3to5(self):
+        self.assert_distance(3, 5, 60)
+
+    def test_6to2(self):
+        self.assert_distance(6, 2, 15)
+
+    def test_2to6(self):
+        self.assert_distance(2, 6, 15)
+
+    def test_6to7(self):
+        self.assert_distance(6, 7, 40)
+
+    def test_7to6(self):
+        self.assert_distance(7, 6, 40)
+
+    def test_6to1(self):
+        self.assert_distance(6, 1, 25)
+
+    def test_1to6(self):
+        self.assert_distance(1, 6, 25)
+
+    def test_6to3(self):
+        self.assert_distance(6, 3, 45)
+
+    def test_3to6(self):
+        self.assert_distance(3, 6, 45)
+
+    def test_6to8(self):
+        self.assert_distance(6, 8, 80)
+
+    def test_8to6(self):
+        self.assert_distance(8, 6, 80)
+
+    def test_6to9(self):
+        self.assert_distance(6, 9, 90)
+
+    def test_9to6(self):
+        self.assert_distance(9, 6, 90)
+
+    def test_6to10(self):
+        self.assert_distance(6, 10, 110)
+
+    def test_10to6(self):
+        self.assert_distance(10, 6, 110)
+
+class Test_9NodeRightWeightedHangman(DistanceOracle2TestCase):
+
+    def create_graph(self):
+        G = {}
+        make_link(G, 1, 2, 10)
+        make_link(G, 1, 3, 5)
+        make_link(G, 2, 4, 15)
+        make_link(G, 2, 5, 20)
+        make_link(G, 5, 6, 5)
+        make_link(G, 5, 7, 10)
+        make_link(G, 7, 8, 15)
+        make_link(G, 7, 9, 20)
+        return G
+
+    def test_EachNodeToItself(self):
+        G = self.create_graph()
+        for node in G:
+            self.assert_distance(node, node, 0)
+
+    def test_1to9(self):
+        self.assert_distance(1, 9, 60)
+
+    def test_1to8(self):
+        self.assert_distance(1, 8, 55)
+
+    def test_1to7(self):
+        self.assert_distance(1, 7, 40)
+
+    def test_1to6(self):
+        self.assert_distance(1, 6, 35)
+
+    def test_1to5(self):
+        self.assert_distance(1, 5, 30)
+
+    def test_1to4(self):
+        self.assert_distance(1, 4, 25)
+
+    def test_1to3(self):
+        self.assert_distance(1, 3, 5)
+
+    def test_1to2(self):
+        self.assert_distance(1, 2, 10)
+
+    def test_9to8(self):
+        self.assert_distance(9, 8, 35)
+
+    def test_8to9(self):
+        self.assert_distance(8, 9, 35)
+
+    def test_9to6(self):
+        self.assert_distance(9, 6, 35)
+
+    def test_6to9(self):
+        self.assert_distance(6, 9, 35)
+
+    def test_8to3(self):
+        self.assert_distance(8, 3, 60)
+
+    def test_3to8(self):
+        self.assert_distance(3, 8, 60)
