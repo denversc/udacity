@@ -23,13 +23,37 @@ from cs215.finalexam.heap import insert_heap
 from cs215.finalexam.heap import decrease_val
 from operator import itemgetter
 
+import math
+
 def maximize_probability_of_favor(G, v1, v2):
     # your code here
     # call either the heap or list version of dijkstra
     # and return the path from `v1` to `v2`
     # along with the probability that v1 will do a favor
     # for v2
-    pass
+    H = {x:{} for x in G}
+    for node1 in G:
+        for node2 in G[node1]:
+            p_node1_node2 = G[node1][node2]
+            p_node1_node2_log = math.log(p_node1_node2, 2)
+            p_node1_node2_log_positive = -p_node1_node2_log
+            H[node1][node2] = p_node1_node2_log_positive
+
+    results = dijkstra_heap(H, v1)
+    result = results[v2]
+
+    p_v1_v2_log_positive = result[0]
+    p_v1_v2_log = -p_v1_v2_log_positive
+    p_v1_v2 = 2 ** p_v1_v2_log
+
+    path = [v2]
+    node = v2
+    while node != v1:
+        node = results[node][1]
+        path.append(node)
+    path.reverse()
+
+    return (path, p_v1_v2)
 
 #
 # version of dijkstra implemented using a heap
