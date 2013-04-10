@@ -26,6 +26,10 @@ from operator import itemgetter
 import math
 
 def maximize_probability_of_favor(G, v1, v2):
+    # Use the property that log(a) + log(b) = log(ab)
+    # And since each edge weight is in the range [0,1] => log(a) < 0
+    # So translate the edge weights into their negative logarithms
+
     H = {x:{} for x in G}
     for node1 in G:
         for node2 in G[node1]:
@@ -34,7 +38,17 @@ def maximize_probability_of_favor(G, v1, v2):
             p_node1_node2_log_positive = -p_node1_node2_log
             H[node1][node2] = p_node1_node2_log_positive
 
-    results = dijkstra_heap(H, v1)
+    # Dijkstra using heaps is O(mlogn) and using lists is O(n^2)
+    # So choose the better algorithm based on this.
+    n = len(G)
+    m = sum(len(G[x]) for x in G)
+    n_squared = n * n
+    m_log_n = m * math.log(n, 2)
+    if n_squared < m_log_n:
+        results = dijkstra_list(H, v1)
+    else:
+        results = dijkstra_heap(H, v1)
+
     result = results[v2]
 
     p_v1_v2_log_positive = result[0]
