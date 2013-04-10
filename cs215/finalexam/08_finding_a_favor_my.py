@@ -18,9 +18,9 @@
 #
 
 # code for heap can be found in the instructors comments below
-from .heap import heappopmin
-from .heap import insert_heap
-from .heap import decrease_val
+from cs215.finalexam.heap import heappopmin
+from cs215.finalexam.heap import insert_heap
+from cs215.finalexam.heap import decrease_val
 from operator import itemgetter
 
 def maximize_probability_of_favor(G, v1, v2):
@@ -104,14 +104,20 @@ import unittest
 
 class ProvidedTests(unittest.TestCase):
 
-    def test(self):
+    def get_result(self):
         G = {'a':{'b':.9, 'e':.5},
              'b':{'c':.9},
              'c':{'d':.01},
              'd':{},
              'e':{'f':.5},
              'f':{'d':.5}}
-        path, prob = maximize_probability_of_favor(G, 'a', 'd')
-        self.assertListEqual(path, ['a', 'e', 'f', 'd'])
-        self.assertAlmostEqual(prob, .5 * .5 * .5, places=3)
+        (path, prob) = maximize_probability_of_favor(G, 'a', 'd')
+        return (path, prob)
 
+    def test1(self):
+        (path, unused_prob) = self.get_result()
+        self.assertListEqual(path, ['a', 'e', 'f', 'd'])
+
+    def test2(self):
+        (unused_path, prob) = self.get_result()
+        self.assertAlmostEqual(prob, .5 * .5 * .5, places=3)
