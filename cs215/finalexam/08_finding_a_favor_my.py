@@ -26,11 +26,6 @@ from operator import itemgetter
 import math
 
 def maximize_probability_of_favor(G, v1, v2):
-    # your code here
-    # call either the heap or list version of dijkstra
-    # and return the path from `v1` to `v2`
-    # along with the probability that v1 will do a favor
-    # for v2
     H = {x:{} for x in G}
     for node1 in G:
         for node2 in G[node1]:
@@ -145,3 +140,183 @@ class ProvidedTests(unittest.TestCase):
     def test2(self):
         (unused_path, prob) = self.get_result()
         self.assertAlmostEqual(prob, .5 * .5 * .5, places=3)
+
+class FindingAFavorTestCase(unittest.TestCase):
+
+    def assert_path(self, v1, v2, expected_path):
+        (actual_path, unused_prob) = self.calculate_result(v1, v2)
+        self.assertListEqual(actual_path, expected_path)
+
+    def assert_probability(self, v1, v2, expected_prob, places=3):
+        (unused_path, actual_prob) = self.calculate_result(v1, v2)
+        self.assertAlmostEqual(actual_prob, expected_prob, places)
+
+    def calculate_result(self, v1, v2):
+        G = self.create_graph()
+        result = maximize_probability_of_favor(G, v1, v2)
+        return result
+
+class Test2Nodes(FindingAFavorTestCase):
+
+    def create_graph(self):
+        return {
+            "A": {"B": 0.25},
+            "B": {"A": 0.80},
+        }
+
+    def test_AtoB_path(self):
+        self.assert_path("A", "B", ["A", "B"])
+
+    def test_AtoB_prob(self):
+        self.assert_probability("A", "B", 0.25)
+
+    def test_BtoA_path(self):
+        self.assert_path("B", "A", ["B", "A"])
+
+    def test_BtoA_prob(self):
+        self.assert_probability("B", "A", 0.80)
+
+class Test3NodeClique(FindingAFavorTestCase):
+
+    def create_graph(self):
+        return {
+            "A": {"B": 0.1, "C": 0.2},
+            "B": {"C": 0.3, "A": 0.9},
+            "C": {"A": 0.8, "B": 0.7},
+        }
+
+    def test_AtoB_path(self):
+        self.assert_path("A", "B", ["A", "C", "B"])
+
+    def test_AtoB_prob(self):
+        self.assert_probability("A", "B", 0.14)
+
+    def test_AtoC_path(self):
+        self.assert_path("A", "C", ["A", "C"])
+
+    def test_AtoC_prob(self):
+        self.assert_probability("A", "C", 0.2)
+
+    def test_BtoA_path(self):
+        self.assert_path("B", "A", ["B", "A"])
+
+    def test_BtoA_prob(self):
+        self.assert_probability("B", "A", 0.9)
+
+    def test_BtoC_path(self):
+        self.assert_path("B", "C", ["B", "C"])
+
+    def test_BtoC_prob(self):
+        self.assert_probability("B", "C", 0.3)
+
+    def test_CtoA_path(self):
+        self.assert_path("C", "A", ["C", "A"])
+
+    def test_CtoA_prob(self):
+        self.assert_probability("C", "A", 0.8)
+
+    def test_CtoB_path(self):
+        self.assert_path("C", "B", ["C", "B"])
+
+    def test_CtoB_prob(self):
+        self.assert_probability("C", "B", 0.7)
+
+class Test4NodeClique(FindingAFavorTestCase):
+
+    def create_graph(self):
+        return {
+            "A": {"B": 0.1, "C": 0.9, "D": 0.6},
+            "B": {"A": 0.2, "C": 0.7, "D": 0.1},
+            "C": {"A": 0.2, "B": 0.2, "D": 0.1},
+            "D": {"A": 0.7, "B": 0.7, "C": 0.9},
+        }
+
+    def test_AtoB_path(self):
+        self.assert_path("A", "B", ["A", "D", "B"])
+
+    def test_AtoB_prob(self):
+        self.assert_probability("A", "B", 0.42)
+
+    def test_AtoC_path(self):
+        self.assert_path("A", "C", ["A", "C"])
+
+    def test_AtoC_prob(self):
+        self.assert_probability("A", "C", 0.9)
+
+    def test_AtoD_path(self):
+        self.assert_path("A", "D", ["A", "D"])
+
+    def test_AtoD_prob(self):
+        self.assert_probability("A", "D", 0.6)
+
+    def test_BtoA_path(self):
+        self.assert_path("B", "A", ["B", "A"])
+
+    def test_BtoA_prob(self):
+        self.assert_probability("B", "A", 0.2)
+
+    def test_BtoC_path(self):
+        self.assert_path("B", "C", ["B", "C"])
+
+    def test_BtoC_prob(self):
+        self.assert_probability("B", "C", 0.7)
+
+    def test_BtoD_path(self):
+        self.assert_path("B", "D", ["B", "A", "D"])
+
+    def test_BtoD_prob(self):
+        self.assert_probability("B", "D", 0.12)
+
+    def test_CtoA_path(self):
+        self.assert_path("C", "A", ["C", "A"])
+
+    def test_CtoA_prob(self):
+        self.assert_probability("C", "A", 0.2)
+
+    def test_CtoB_path(self):
+        self.assert_path("C", "B", ["C", "B"])
+
+    def test_CtoB_prob(self):
+        self.assert_probability("C", "B", 0.2)
+
+    def test_CtoD_path(self):
+        self.assert_path("C", "D", ["C", "A", "D"])
+
+    def test_CtoD_prob(self):
+        self.assert_probability("C", "D", 0.12)
+
+    def test_DtoA_path(self):
+        self.assert_path("D", "A", ["D", "A"])
+
+    def test_DtoA_prob(self):
+        self.assert_probability("D", "A", 0.7)
+
+    def test_DtoB_path(self):
+        self.assert_path("D", "B", ["D", "B"])
+
+    def test_DtoB_prob(self):
+        self.assert_probability("D", "B", 0.7)
+
+    def test_DtoC_path(self):
+        self.assert_path("D", "C", ["D", "C"])
+
+    def test_DtoC_prob(self):
+        self.assert_probability("D", "C", 0.9)
+
+class TestBigDipper(FindingAFavorTestCase):
+
+    def create_graph(self):
+        return {
+            "A": {"B": 0.1},
+            "B": {"C": 0.7},
+            "C": {"D": 0.2, "E": 0.4},
+            "D": {"F": 0.7},
+            "E": {"F": 0.1},
+            "F": {},
+        }
+
+    def test_AtoF_path(self):
+        self.assert_path("A", "F", ["A", "B", "C", "D", "F"])
+
+    def test_AtoF_prob(self):
+        self.assert_probability("A", "F", 0.0098, 4)
